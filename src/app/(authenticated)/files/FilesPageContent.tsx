@@ -34,7 +34,7 @@ import {
   DropdownMenuSubContent,
 } from '@/components/ui/dropdown-menu';
 import { AppFile, Client, RechargeEntry, BillAddress, BillTemplate, Institution } from '@/lib/types';
-import { isValid, parse, format, differenceInYears } from 'date-fns';
+import { isValid, parse, differenceInYears } from 'date-fns';
 import { toDate, formatInTimeZone } from 'date-fns-tz';
 
 import {
@@ -93,15 +93,14 @@ const toEnglish = (str: string): string => {
 const parseDateString = (dateString: string): Date | null => {
     if (!dateString) return null;
     const englishDateString = toEnglish(dateString.trim());
+    // This regex now captures the separator used
     const dateRegex = /^(?<day>\d{1,2})(?<sep>[\/\-.])(?<month>\d{1,2})\k<sep>(?<year>\d{4})$/;
     const match = englishDateString.match(dateRegex);
     if (match?.groups) {
-        const separator = match.groups.sep;
-        const formatString = `dd${separator}MM${separator}yyyy`;
+        const { day, month, year, sep } = match.groups;
+        const formatString = `dd${sep}MM${sep}yyyy`;
         const parsedDate = parse(englishDateString, formatString, new Date());
-        if (isValid(parsedDate)) {
-            return parsedDate;
-        }
+        return isValid(parsedDate) ? parsedDate : null;
     }
     return null;
 };
@@ -171,9 +170,9 @@ const fileSchema = z.object({
                 ctx.addIssue({ code: z.ZodIssueCode.custom, message: 'পিতার নাম অবশ্যই ইংরেজিতে লিখতে হবে।', path: ['fatherNameEnglish'] });
             }
         } else { // 24 or older
-            if (!data.applicantNameEnglish) {
+            if (!isEnglish(data.applicantName) && !data.applicantNameEnglish) {
                  ctx.addIssue({ code: z.ZodIssueCode.custom, message: '২৪ বছর বা তার বেশি বয়সীদের জন্য আবেদনকারীর ইংরেজি নাম আবশ্যক', path: ['applicantNameEnglish'] });
-            } else if (!isEnglish(data.applicantNameEnglish)) {
+            } else if (data.applicantNameEnglish && !isEnglish(data.applicantNameEnglish)) {
                 ctx.addIssue({ code: z.ZodIssueCode.custom, message: 'আবেদনকারীর নাম অবশ্যই ইংরেজিতে লিখতে হবে।', path: ['applicantNameEnglish'] });
             }
         }
@@ -287,6 +286,17 @@ export const FileForm = ({
 
   const isBillEnabled = applicantAge !== null;
 
+  // This determines if we need to ask for the applicant's name in English
+  const showApplicantNameEnglish = useMemo(() => {
+    return createElectricityBill && applicantAge !== null && applicantAge >= 24 && !isEnglish(applicantName);
+  }, [createElectricityBill, applicantAge, applicantName]);
+
+  // This determines if we need to ask for the father's name in English
+  const showFatherNameEnglish = useMemo(() => {
+      return createElectricityBill && applicantAge !== null && applicantAge < 24;
+  }, [createElectricityBill, applicantAge]);
+
+
   // Reset checkboxes if conditions are no longer met
   useEffect(() => {
     if (!isCertificateEnabled && createCertificate) {
@@ -361,8 +371,9 @@ export const FileForm = ({
                     billHolderName = values.fatherNameEnglish!;
                     fileData.fatherNameEnglish = values.fatherNameEnglish;
                 } else {
-                    billHolderName = values.applicantNameEnglish!;
-                    fileData.applicantNameEnglish = values.applicantNameEnglish;
+                    // If applicant name is already in english, use it. Otherwise use the separate english name field.
+                    billHolderName = isEnglish(values.applicantName) ? values.applicantName : values.applicantNameEnglish!;
+                    fileData.applicantNameEnglish = billHolderName;
                 }
 
                 const randomAddress = activeAddresses[Math.floor(Math.random() * activeAddresses.length)];
@@ -509,17 +520,18 @@ export const FileForm = ({
                         </div>
                     )}
                     
-                    {createElectricityBill && applicantAge !== null && (
+                    {(showApplicantNameEnglish || showFatherNameEnglish) && (
                         <div className="p-4 border rounded-md space-y-4">
                             <h3 className="text-sm font-medium text-muted-foreground">বিদ্যুৎ বিলের জন্য তথ্য (ইংরেজি)</h3>
-                            {applicantAge < 24 ? (
+                             {showFatherNameEnglish && (
                                 <FormField control={form.control} name="fatherNameEnglish" render={({ field }) => (
                                     <FormItem><FormLabel>পিতার নাম</FormLabel>
                                     <FormControl><Input placeholder="Father's Full Name" {...field} /></FormControl>
                                     <FormMessage />
                                     </FormItem>
                                 )} />
-                            ) : (
+                            )}
+                            {showApplicantNameEnglish && (
                                 <FormField control={form.control} name="applicantNameEnglish" render={({ field }) => (
                                     <FormItem><FormLabel>আবেদনকারীর নাম</FormLabel>
                                     <FormControl><Input placeholder="Applicant's Full Name" {...field} /></FormControl>
@@ -1012,11 +1024,11 @@ export default function FilesPageContent({
                     <PopoverTrigger asChild>
                     <Button variant="outline" className="w-full md:w-[280px] justify-start text-left font-normal">
                         <CalendarIcon className="mr-2 h-4 w-4" />
-                        {searchParams.get('date') ? format(parse(searchParams.get('date')!, 'yyyy-MM-dd', new Date()), 'dd/MM/yyyy') : <span>একটি তারিখ বাছাই করুন</span>}
+                        {searchParams.get('date') ? formatInTimeZone(parse(searchParams.get('date')!, 'yyyy-MM-dd', new Date()), 'Asia/Dhaka', 'dd/MM/yyyy') : <span>একটি তারিখ বাছাই করুন</span>}
                     </Button>
                     </PopoverTrigger>
                     <PopoverContent className="w-auto p-0">
-                    <Calendar mode="single" selected={searchParams.get('date') ? parse(searchParams.get('date')!, 'yyyy-MM-dd', new Date()) : undefined} onSelect={(date) => handleFilterChange('date', date ? format(date, 'yyyy-MM-dd') : null)} initialFocus />
+                    <Calendar mode="single" selected={searchParams.get('date') ? parse(searchParams.get('date')!, 'yyyy-MM-dd', new Date()) : undefined} onSelect={(date) => handleFilterChange('date', date ? formatInTimeZone(date, 'Asia/Dhaka', 'yyyy-MM-dd') : null)} initialFocus />
                     </PopoverContent>
                 </Popover>
             );
@@ -1029,13 +1041,13 @@ export default function FilesPageContent({
                     <PopoverTrigger asChild>
                     <Button variant="outline" className={cn("w-full md:w-[300px] justify-start text-left font-normal", !dateRange && "text-muted-foreground")}>
                         <CalendarIcon className="mr-2 h-4 w-4" />
-                        {dateRange?.from ? (dateRange.to ? <>{format(dateRange.from, "dd/MM/yy")} - {format(dateRange.to, "dd/MM/yy")}</> : format(dateRange.from, "dd/MM/yyyy")) : <span>একটি তারিখ পরিসর বাছাই করুন</span>}
+                        {dateRange?.from ? (dateRange.to ? <>{formatInTimeZone(dateRange.from, 'Asia/Dhaka', "dd/MM/yy")} - {formatInTimeZone(dateRange.to, 'Asia/Dhaka', "dd/MM/yy")}</> : formatInTimeZone(dateRange.from, 'Asia/Dhaka', "dd/MM/yyyy")) : <span>একটি তারিখ পরিসর বাছাই করুন</span>}
                     </Button>
                     </PopoverTrigger>
                     <PopoverContent className="w-auto p-0" align="start">
                     <Calendar initialFocus mode="range" defaultMonth={dateRange?.from} selected={dateRange} onSelect={(range) => {
-                        handleFilterChange('from', range?.from ? format(range.from, 'yyyy-MM-dd') : null)
-                        handleFilterChange('to', range?.to ? format(range.to, 'yyyy-MM-dd') : null)
+                        handleFilterChange('from', range?.from ? formatInTimeZone(range.from, 'Asia/Dhaka', 'yyyy-MM-dd') : null)
+                        handleFilterChange('to', range?.to ? formatInTimeZone(range.to, 'Asia/Dhaka', 'yyyy-MM-dd') : null)
                     }} numberOfMonths={2}/>
                     </PopoverContent>
                 </Popover>
@@ -1044,7 +1056,7 @@ export default function FilesPageContent({
              return (
                 <Input
                     type="month"
-                    value={searchParams.get('month') || format(new Date(), 'yyyy-MM')}
+                    value={searchParams.get('month') || formatInTimeZone(new Date(), 'Asia/Dhaka', 'yyyy-MM')}
                     onChange={(e) => handleFilterChange('month', e.target.value)}
                     className="w-full md:w-[280px]"
                 />
@@ -1366,7 +1378,7 @@ export default function FilesPageContent({
                             )}
                         </div>
                     </TableCell>
-                    <TableCell>{file.createdAt ? format(parse(file.createdAt, "yyyy-MM-dd'T'HH:mm:ss.SSSSSSxxx", new Date()), 'dd/MM/yyyy') : ''}</TableCell>
+                    <TableCell>{file.createdAt ? formatInTimeZone(parse(file.createdAt, "yyyy-MM-dd'T'HH:mm:ss.SSSSSSxxx", new Date()), 'Asia/Dhaka', 'dd/MM/yyyy') : ''}</TableCell>
                     <TableCell>
                         <DropdownMenu>
                         <DropdownMenuTrigger asChild><Button aria-haspopup="true" size="icon" variant="ghost"><MoreHorizontal className="h-4 w-4" /><span className="sr-only">Toggle menu</span></Button></DropdownMenuTrigger>
@@ -1493,7 +1505,7 @@ export default function FilesPageContent({
                     <p><strong>জন্ম তারিখ/সাল:</strong></p>
                     <p>{formatDobForDisplay(file.dob)}</p>
                     <p><strong>তৈরির তারিখ:</strong></p>
-                    <p>{file.createdAt ? format(parse(file.createdAt, "yyyy-MM-dd'T'HH:mm:ss.SSSSSSxxx", new Date()), 'dd/MM/yyyy') : ''}</p>
+                    <p>{file.createdAt ? formatInTimeZone(parse(file.createdAt, "yyyy-MM-dd'T'HH:mm:ss.SSSSSSxxx", new Date()), 'Asia/Dhaka', 'dd/MM/yyyy') : ''}</p>
                     <p><strong>ডকুমেন্টস:</strong></p>
                     <div className="flex gap-2">
                         {file.hasCertificate && <Badge variant={file.certificate_status === 'প্রিন্ট হয়েছে' ? 'default' : 'secondary'} className="px-1.5 py-0"><Award className="h-3 w-3 mr-1" />প্রত্যয়ন</Badge>}
@@ -1533,3 +1545,5 @@ export default function FilesPageContent({
 
     
     
+
+      
