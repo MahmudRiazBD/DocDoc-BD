@@ -51,7 +51,15 @@ const renderCertificateText = (text: string, file: AppFile) => {
       return { __html: 'Error: Missing certificate data in file.' };
     }
 
-    const bengaliFormattedDob = toBengaliNumber(file.dob);
+    // Correctly format the DOB from YYYY-MM-DD to DD/MM/YYYY
+    let formattedDob = file.dob;
+    try {
+        const parsedDob = parseISO(file.dob);
+        formattedDob = format(parsedDob, 'dd/MM/yyyy');
+    } catch (e) {
+        // If parsing fails, use the original string.
+    }
+    const bengaliFormattedDob = toBengaliNumber(formattedDob);
     const bengaliRoll = toBengaliNumber(file.roll);
     const bengaliSessionYear = toBengaliNumber(file.sessionYear);
     const bengaliClass = toBengaliOrdinal(file.class);
