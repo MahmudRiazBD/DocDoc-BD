@@ -63,7 +63,7 @@ The application employs a sophisticated, multi-layered caching strategy to ensur
 
 -   **Aggressive Caching (Dashboard):** The main dashboard stats are heavily cached to load almost instantly. This cache is only invalidated manually via a "Purge Cache" button, ensuring the fastest possible access to overview data.
 -   **Smart Revalidation (Data Tables):** Pages like Files and Clients use a balanced approach. They load quickly from cache, but any data mutation (add, edit, delete) automatically triggers a cache revalidation (`revalidatePath`), ensuring the user always sees the most up-to-date information without a manual refresh.
--   **Smart Prefetching (Print Views):** To make printing feel instantaneous, the application uses `onMouseEnter` events. When a user hovers over a file in the list, the data for its print view is pre-fetched in the background.
+-   **Smart Prefetching (File List & Print Views):** To make navigation and printing feel instantaneous, the application uses smart prefetching. When a user navigates to the Files page, the data for the *next* page is pre-fetched in the background. Similarly, when a user hovers over a file in the list, the data for its print view is pre-fetched.
 
 ### Interactive Dashboard
 
@@ -158,5 +158,4 @@ If a developer wishes to build a similar application, the following steps can be
 9.  **Performance Tuning:**
     -   Implement a multi-layered caching strategy as described above.
     -   Use lazy loading for non-critical data on pages like the Dashboard.
-    -   Use `router.prefetch()` on user interaction events like `onMouseEnter` to preload data for subsequent navigation.
-
+    -   Use `router.prefetch()` or similar techniques on user interaction events like `onMouseEnter` or when a component becomes visible to preload data for subsequent navigation.
