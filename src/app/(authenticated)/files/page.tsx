@@ -26,9 +26,11 @@ export default async function FilesPage({ searchParams }: { searchParams: { [key
   const year = typeof searchParams.year === 'string' ? searchParams.year : undefined;
 
   const filterOptions = { page, filter, clientId, date, from, to, month, year };
+  const nextPageFilterOptions = { ...filterOptions, page: page + 1 };
 
   const [
     initialFiles,
+    prefetchedFiles,
     totalFiles,
     clients,
     billAddresses,
@@ -36,6 +38,7 @@ export default async function FilesPage({ searchParams }: { searchParams: { [key
     institutions,
   ] = await Promise.all([
     getFiles(filterOptions),
+    getFiles(nextPageFilterOptions),
     getFilesCount(filterOptions),
     getClients(),
     getBillAddresses(),
@@ -46,6 +49,7 @@ export default async function FilesPage({ searchParams }: { searchParams: { [key
   return (
     <FilesPageContent
       initialFiles={initialFiles}
+      initialPrefetchedFiles={prefetchedFiles}
       totalFiles={totalFiles}
       clients={clients}
       billAddresses={billAddresses}

@@ -786,6 +786,7 @@ const EditFileForm = ({
 
 export default function FilesPageContent({ 
   initialFiles,
+  initialPrefetchedFiles,
   totalFiles,
   clients, 
   billAddresses, 
@@ -793,6 +794,7 @@ export default function FilesPageContent({
   institutions
 }: { 
   initialFiles: AppFile[],
+  initialPrefetchedFiles: AppFile[],
   totalFiles: number,
   clients: Client[],
   billAddresses: BillAddress[],
@@ -806,6 +808,7 @@ export default function FilesPageContent({
 
   const [files, setFiles] = useState(initialFiles);
   const [page, setPage] = useState(1);
+  const [prefetchedFiles, setPrefetchedFiles] = useState<AppFile[]>(initialPrefetchedFiles);
   const [isLoadingMore, setIsLoadingMore] = useState(false);
   const [isDeletePending, startDeleteTransition] = useTransition();
   const [selectedRows, setSelectedRows] = useState<string[]>([]);
@@ -820,8 +823,9 @@ export default function FilesPageContent({
   // Update files state if initialFiles change (due to filter navigation)
   useEffect(() => {
     setFiles(initialFiles);
+    setPrefetchedFiles(initialPrefetchedFiles);
     setPage(1); // Reset page number on filter change
-  }, [initialFiles]);
+  }, [initialFiles, initialPrefetchedFiles]);
   
   useEffect(() => {
     if(searchParams.get('action') === 'add') {
@@ -844,15 +848,20 @@ export default function FilesPageContent({
   };
 
   const handleFilterChange = (key: string, value: string | null) => {
-    router.push(pathname + '?' + createQueryString({ [key]: value, page: null }));
+    const newParams = { [key]: value, page: null };
+    // If the main filter is changing, clear other filters
+    if (key === 'filter') {
+        Object.assign(newParams, { date: null, from: null, to: null, month: null, year: null });
+    }
+    router.push(pathname + '?' + createQueryString(newParams));
   };
-
-  const loadMoreFiles = async () => {
+  
+  const fetchNextPage = async () => {
     setIsLoadingMore(true);
     try {
-        const nextPage = page + 1;
-        const newFiles = await getFiles({
-            page: nextPage,
+        const nextPageToFetch = page + 2; // We already have page + 1 prefetched
+        const newPrefetchedFiles = await getFiles({
+            page: nextPageToFetch,
             filter: searchParams.get('filter') || undefined,
             clientId: searchParams.get('clientId') || undefined,
             date: searchParams.get('date') || undefined,
@@ -861,15 +870,23 @@ export default function FilesPageContent({
             month: searchParams.get('month') || undefined,
             year: searchParams.get('year') || undefined,
         });
-
-        if (newFiles.length > 0) {
-            setFiles(prev => [...prev, ...newFiles]);
-            setPage(nextPage);
-        }
+        setPrefetchedFiles(newPrefetchedFiles);
     } catch (error) {
-        toast({ variant: 'destructive', title: 'ত্রুটি', description: 'আরও ফাইল লোড করতে সমস্যা হয়েছে।' });
+        console.error('Failed to prefetch next page:', error);
+        setPrefetchedFiles([]); // Clear on error
     } finally {
         setIsLoadingMore(false);
+    }
+  }
+
+
+  const loadMoreFiles = async () => {
+    if(prefetchedFiles.length > 0) {
+        setFiles(prev => [...prev, ...prefetchedFiles]);
+        setPage(prev => prev + 1);
+        setPrefetchedFiles([]); // Clear prefetched data
+        // Trigger fetch for the *next* next page
+        fetchNextPage();
     }
   };
   
@@ -1548,7 +1565,7 @@ export default function FilesPageContent({
         )}
         {files.length < totalFiles && (
             <div className="flex justify-center mt-6">
-                <Button onClick={loadMoreFiles} disabled={isLoadingMore}>
+                <Button onClick={loadMoreFiles} disabled={isLoadingMore || prefetchedFiles.length === 0}>
                     {isLoadingMore && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                     আরো লোড করুন
                 </Button>
