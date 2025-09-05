@@ -147,6 +147,9 @@ const fileSchema = z.object({
     }
 
     if (data.createCertificate) {
+        if (!isBengali(data.applicantName)) {
+             ctx.addIssue({ code: z.ZodIssueCode.custom, message: 'আবেদনকারীর নাম অবশ্যই বাংলায় লিখতে হবে।', path: ['applicantName'] });
+        }
         if (!parseDateString(dob)) {
             ctx.addIssue({ code: z.ZodIssueCode.custom, message: 'প্রত্যয়নপত্রের জন্য সম্পূর্ণ জন্ম তারিখ আবশ্যক (DD/MM/YYYY)', path: ['dob'] });
         }
@@ -1001,7 +1004,7 @@ export default function FilesPageContent({
                     <PopoverTrigger asChild>
                     <Button variant="outline" className="w-full md:w-[280px] justify-start text-left font-normal">
                         <CalendarIcon className="mr-2 h-4 w-4" />
-                        {specificDate ? format(specificDate, 'PPP') : <span>একটি তারিখ বাছাই করুন</span>}
+                        {specificDate ? format(specificDate, 'dd/MM/yyyy') : <span>একটি তারিখ বাছাই করুন</span>}
                     </Button>
                     </PopoverTrigger>
                     <PopoverContent className="w-auto p-0">
@@ -1015,7 +1018,7 @@ export default function FilesPageContent({
                     <PopoverTrigger asChild>
                     <Button variant="outline" className={cn("w-full md:w-[300px] justify-start text-left font-normal", !dateRange && "text-muted-foreground")}>
                         <CalendarIcon className="mr-2 h-4 w-4" />
-                        {dateRange?.from ? (dateRange.to ? <>{format(dateRange.from, "LLL dd, y")} - {format(dateRange.to, "LLL dd, y")}</> : format(dateRange.from, "LLL dd, y")) : <span>একটি তারিখ পরিসর বাছাই করুন</span>}
+                        {dateRange?.from ? (dateRange.to ? <>{format(dateRange.from, "dd/MM/yy")} - {format(dateRange.to, "dd/MM/yy")}</> : format(dateRange.from, "dd/MM/yyyy")) : <span>একটি তারিখ পরিসর বাছাই করুন</span>}
                     </Button>
                     </PopoverTrigger>
                     <PopoverContent className="w-auto p-0" align="start">
@@ -1331,7 +1334,7 @@ export default function FilesPageContent({
                             )}
                         </div>
                     </TableCell>
-                    <TableCell>{file.createdAt ? formatInTimeZone(dateFnsParseIso(file.createdAt), 'Asia/Dhaka', 'dd/MM/yyyy') : ''}</TableCell>
+                    <TableCell>{file.createdAt ? format(dateFnsParseIso(file.createdAt), 'dd/MM/yyyy') : ''}</TableCell>
                     <TableCell>
                         <DropdownMenu>
                         <DropdownMenuTrigger asChild><Button aria-haspopup="true" size="icon" variant="ghost"><MoreHorizontal className="h-4 w-4" /><span className="sr-only">Toggle menu</span></Button></DropdownMenuTrigger>
@@ -1458,7 +1461,7 @@ export default function FilesPageContent({
                     <p><strong>জন্ম তারিখ/সাল:</strong></p>
                     <p>{formatDobForDisplay(file.dob)}</p>
                     <p><strong>তৈরির তারিখ:</strong></p>
-                    <p>{file.createdAt ? formatInTimeZone(dateFnsParseIso(file.createdAt), 'Asia/Dhaka', 'dd/MM/yyyy') : ''}</p>
+                    <p>{file.createdAt ? format(dateFnsParseIso(file.createdAt), 'dd/MM/yyyy') : ''}</p>
                     <p><strong>ডকুমেন্টস:</strong></p>
                     <div className="flex gap-2">
                         {file.hasCertificate && <Badge variant={file.certificate_status === 'প্রিন্ট হয়েছে' ? 'default' : 'secondary'} className="px-1.5 py-0"><Award className="h-3 w-3 mr-1" />প্রত্যয়ন</Badge>}
@@ -1487,3 +1490,5 @@ export default function FilesPageContent({
   );
 }
   
+
+    
