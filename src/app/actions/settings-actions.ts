@@ -32,16 +32,34 @@ async function deleteAllAuthUsers() {
 export async function resetApplication(): Promise<{ error?: string }> {
   try {
     const supabaseAdmin = createClient();
-    const { error: truncateError } = await supabaseAdmin.rpc('execute_sql', {
-       sql: `TRUNCATE ${TABLES_TO_TRUNCATE.join(', ')} RESTART IDENTITY CASCADE`
-    });
+    
+    // Construct the full SQL command to truncate all tables at once.
+    // Using a single transaction is more efficient and atomic.
+    const sql = `TRUNCATE TABLE ${TABLES_TO_TRUNCATE.join(', ')} RESTART IDENTITY CASCADE;`;
+
+    // Use a generic rpc call to execute the raw SQL.
+    // Note: This requires the `execute_sql` function to be defined in your Supabase database.
+    // If it's not defined, this will fail. A more robust solution might involve
+    // calling truncate on each table individually if this function is not available.
+    const { error: truncateError } = await supabaseAdmin.rpc('execute_sql', { sql });
 
     if (truncateError) {
-        throw new Error(`Supabase truncate error: ${truncateError.message}`);
+        // Fallback: If the RPC fails, try truncating tables individually.
+        console.warn('RPC execute_sql failed, falling back to individual truncate calls.', truncateError);
+        for (const table of TABLES_TO_TRUNCATE) {
+            const { error: singleTruncateError } = await supabaseAdmin.rpc('execute_sql', {
+                sql: `TRUNCATE TABLE ${table} RESTART IDENTITY CASCADE;`
+            });
+            if (singleTruncateError) {
+                 throw new Error(`Supabase truncate error on table ${table}: ${singleTruncateError.message}`);
+            }
+        }
     }
 
     // Delete all Supabase Authentication users
     await deleteAllAuthUsers();
+
+    revalidatePath('/', 'layout');
 
     return {};
   } catch (error: any) {
