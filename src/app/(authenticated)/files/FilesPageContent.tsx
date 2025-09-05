@@ -34,8 +34,9 @@ import {
   DropdownMenuSubContent,
 } from '@/components/ui/dropdown-menu';
 import { AppFile, Client, RechargeEntry, BillAddress, BillTemplate, Institution } from '@/lib/types';
-import { isValid, differenceInYears, startOfDay, endOfDay, startOfWeek, endOfWeek, startOfMonth, endOfMonth, startOfYear, endOfYear, parseISO as dateFnsParseIso, parse, format } from 'date-fns';
+import { isValid, parse, format } from 'date-fns';
 import { toDate, formatInTimeZone } from 'date-fns-tz';
+import { dateFnsParseIso } from 'date-fns/fp';
 
 import {
   Dialog,
@@ -60,7 +61,7 @@ import {
 } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
 import { useToast } from '@/hooks/use-toast';
-import { addFile, updateFile, deleteFile, deleteFiles, updatePrintStatus } from '@/lib/supabase/database';
+import { addFile, updateFile, deleteFile, deleteFiles, updatePrintStatus, getFiles } from '@/lib/supabase/database';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '@/components/ui/command';
 import { cn } from '@/lib/utils';
@@ -74,7 +75,7 @@ import { Separator } from '@/components/ui/separator';
 import { DateRange } from 'react-day-picker';
 import { Calendar } from '@/components/ui/calendar';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { useSearchParams, useRouter } from 'next/navigation';
+import { useRouter, usePathname, useSearchParams } from 'next/navigation';
 import { ScrollArea } from '@/components/ui/scroll-area';
 
 // Helper to convert English digits to Bengali
@@ -180,7 +181,6 @@ const fileSchema = z.object({
 
 
 type FileSchema = z.infer<typeof fileSchema>;
-type FilterType = 'lifetime' | 'daily' | 'weekly' | 'monthly' | 'yearly' | 'custom' | 'specific_date' | 'specific_month';
 
 const generateRechargeHistory = (templateId: 'desco' | 'dpdc'): RechargeEntry[] => {
     const history: RechargeEntry[] = [];
@@ -320,7 +320,7 @@ export const FileForm = ({
             }
                 const randomInstitution = institutions[Math.floor(Math.random() * institutions.length)];
                 
-                const age = differenceInYears(new Date(), dobForCert);
+                const age = new Date().getFullYear() - dobForCert.getFullYear();
                 const today = new Date();
                 const academicData = await generateCertificateData({ age: age, date: today.toISOString() });
                 
@@ -743,126 +743,114 @@ const EditFileForm = ({
 
 export default function FilesPageContent({ 
   initialFiles,
-  allFiles, 
+  totalFiles,
   clients, 
   billAddresses, 
   billTemplates,
   institutions
 }: { 
   initialFiles: AppFile[],
-  allFiles: AppFile[],
+  totalFiles: number,
   clients: Client[],
   billAddresses: BillAddress[],
   billTemplates: BillTemplate[],
   institutions: Institution[],
 }) {
-  const searchParams = useSearchParams();
   const router = useRouter();
-
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
   const { toast } = useToast();
+
+  const [files, setFiles] = useState(initialFiles);
+  const [page, setPage] = useState(1);
+  const [isLoadingMore, setIsLoadingMore] = useState(false);
   const [isDeletePending, startDeleteTransition] = useTransition();
   const [selectedRows, setSelectedRows] = useState<string[]>([]);
-  
-  const [filter, setFilter] = useState<FilterType>('daily');
-  const [dateRange, setDateRange] = useState<DateRange | undefined>();
-  const [specificDate, setSpecificDate] = useState<Date | undefined>();
-  const [specificMonth, setSpecificMonth] = useState<Date>(new Date());
-  const [specificYear, setSpecificYear] = useState<number>(new Date().getFullYear());
   
   type DialogState = {
     mode: 'add' | 'view' | 'edit' | null;
     file: AppFile | null;
     loadingDetails?: boolean;
   };
-
   const [dialogState, setDialogState] = useState<DialogState>({ mode: null, file: null });
 
+  // Update files state if initialFiles change (due to filter navigation)
+  useEffect(() => {
+    setFiles(initialFiles);
+    setPage(1); // Reset page number on filter change
+  }, [initialFiles]);
+  
   useEffect(() => {
     if(searchParams.get('action') === 'add') {
       setDialogState({ mode: 'add', file: null });
       // Clean the URL without reloading the page
-      router.replace('/files', {scroll: false});
+      router.replace(pathname, {scroll: false});
     }
-  }, [searchParams, router]);
+  }, [searchParams, router, pathname]);
+
+  const createQueryString = (params: Record<string, string | null>) => {
+    const newSearchParams = new URLSearchParams(searchParams);
+    for (const [key, value] of Object.entries(params)) {
+        if (value === null) {
+            newSearchParams.delete(key);
+        } else {
+            newSearchParams.set(key, value);
+        }
+    }
+    return newSearchParams.toString();
+  };
+
+  const handleFilterChange = (key: string, value: string | null) => {
+    router.push(pathname + '?' + createQueryString({ [key]: value, page: null }));
+  };
+
+  const loadMoreFiles = async () => {
+    setIsLoadingMore(true);
+    try {
+        const nextPage = page + 1;
+        const newFiles = await getFiles({
+            page: nextPage,
+            filter: searchParams.get('filter') || undefined,
+            clientId: searchParams.get('clientId') || undefined,
+            date: searchParams.get('date') || undefined,
+            from: searchParams.get('from') || undefined,
+            to: searchParams.get('to') || undefined,
+            month: searchParams.get('month') || undefined,
+            year: searchParams.get('year') || undefined,
+        });
+
+        if (newFiles.length > 0) {
+            setFiles(prev => [...prev, ...newFiles]);
+            setPage(nextPage);
+        }
+    } catch (error) {
+        toast({ variant: 'destructive', title: 'ত্রুটি', description: 'আরও ফাইল লোড করতে সমস্যা হয়েছে।' });
+    } finally {
+        setIsLoadingMore(false);
+    }
+  };
   
-  const displayedFiles = useMemo(() => {
-    if (filter === 'daily') return initialFiles; // Use pre-filtered daily files
-    if (filter === 'lifetime') return allFiles;
-    
-    let start, end;
-    const now = new Date();
-
-    switch (filter) {
-        case 'weekly':
-            start = startOfWeek(now);
-            end = endOfWeek(now);
-            break;
-        case 'monthly':
-            start = startOfMonth(now);
-            end = endOfMonth(now);
-            break;
-        case 'yearly':
-            start = startOfYear(new Date(specificYear, 0, 1));
-            end = endOfYear(new Date(specificYear, 11, 31));
-            break;
-        case 'specific_date':
-            if (!specificDate) return allFiles;
-            start = startOfDay(specificDate);
-            end = endOfDay(specificDate);
-            break;
-        case 'specific_month':
-            start = startOfMonth(specificMonth);
-            end = endOfMonth(specificMonth);
-            break;
-        case 'custom':
-            if (!dateRange?.from || !dateRange?.to) return allFiles;
-            start = startOfDay(dateRange.from);
-            end = endOfDay(dateRange.to);
-            break;
-        default:
-            return allFiles;
-    }
-    
-    if(start && end) {
-      return allFiles.filter(c => {
-          const fileDate = dateFnsParseIso(c.createdAt);
-          return fileDate >= start! && fileDate <= end!;
-      });
-    }
-
-    return allFiles;
-
-  }, [filter, dateRange, specificDate, specificMonth, specificYear, allFiles, initialFiles]);
   
   const handleViewDetails = (file: AppFile) => {
-    const fullFile = allFiles.find(f => f.id === file.id);
-    if(fullFile) {
-        setDialogState({ mode: 'view', file: fullFile });
-    }
+    setDialogState({ mode: 'view', file: file });
   }
 
   const handleEditFile = async (file: AppFile) => {
-    const fullFileWithDetails = allFiles.find(f => f.id === file.id);
-    if(fullFileWithDetails) {
-      setDialogState({ 
-        mode: 'edit', 
-        file: fullFileWithDetails
-      });
-    }
+    setDialogState({ mode: 'edit', file: file });
   }
 
   const handleStatusChange = async (file: AppFile, docType: 'certificate' | 'bill', newStatus: 'প্রিন্ট হয়েছে' | 'প্রিন্ট হয়নি') => {
       try {
-        let docId: string | undefined;
-        if (docType === 'certificate' && file.hasCertificate) {
-            docId = file.id;
-            await updatePrintStatus('certificate', [docId], newStatus);
-        } else if (docType === 'bill' && file.hasElectricityBill) {
-            docId = file.id;
-            await updatePrintStatus('bill', [docId], newStatus);
-        }
+        await updatePrintStatus(docType, [file.id], newStatus);
         toast({ title: 'স্ট্যাটাস আপডেট হয়েছে', className: 'bg-accent text-accent-foreground' });
-        router.refresh();
+        // Optimistically update UI
+        setFiles(files.map(f => {
+            if (f.id === file.id) {
+                if (docType === 'certificate') f.certificate_status = newStatus;
+                if (docType === 'bill') f.bill_status = newStatus;
+            }
+            return f;
+        }));
       } catch (error) {
          toast({ variant: 'destructive', title: 'ত্রুটি', description: 'স্ট্যাটাস আপডেট করতে সমস্যা হয়েছে।'});
       }
@@ -874,10 +862,9 @@ export default function FilesPageContent({
       return;
     }
 
-    const docIdsToUpdate = allFiles
+    const docIdsToUpdate = files
       .filter(f => selectedRows.includes(f.id) && (docType === 'certificate' ? f.hasCertificate : f.hasElectricityBill))
-      .map(f => f.id)
-      .filter((id): id is string => !!id);
+      .map(f => f.id);
 
     if (docIdsToUpdate.length === 0) {
       toast({ variant: 'destructive', title: `কোনো ${docType === 'certificate' ? 'প্রত্যয়নপত্র' : 'বিদ্যুৎ বিল'} পাওয়া যায়নি`, description: `নির্বাচিত ফাইলগুলোতে কোনো ${docType === 'certificate' ? 'প্রত্যয়নপত্র' : 'বিদ্যুৎ বিল'} নেই।`});
@@ -891,8 +878,15 @@ export default function FilesPageContent({
         description: `${docIdsToUpdate.length} টি ডকুমেন্টের স্ট্যাটাস "${newStatus}" করা হয়েছে।`,
         className: 'bg-accent text-accent-foreground',
       });
+      // Optimistically update UI
+       setFiles(files.map(f => {
+            if (docIdsToUpdate.includes(f.id)) {
+                if (docType === 'certificate') f.certificate_status = newStatus;
+                if (docType === 'bill') f.bill_status = newStatus;
+            }
+            return f;
+        }));
       setSelectedRows([]);
-      router.refresh();
     } catch (error) {
       toast({ variant: 'destructive', title: 'ত্রুটি', description: 'স্ট্যাটাস আপডেট করতে সমস্যা হয়েছে।'});
     }
@@ -913,7 +907,7 @@ export default function FilesPageContent({
         try {
             await deleteFile(id);
             toast({ title: 'সফলভাবে ডিলিট হয়েছে', description: 'ফাইলটি তালিকা থেকে মুছে ফেলা হয়েছে।', variant: 'destructive' });
-            router.refresh();
+            setFiles(files.filter(f => f.id !== id));
         } catch (error) {
             toast({ variant: 'destructive', title: 'ত্রুটি', description: 'ফাইল ডিলিট করতে সমস্যা হয়েছে।'});
         }
@@ -925,8 +919,8 @@ export default function FilesPageContent({
       try {
         await deleteFiles(selectedRows);
         toast({ variant: 'destructive', title: 'ফাইল ডিলিট হয়েছে', description: `${selectedRows.length} টি ফাইল ডিলিট করা হয়েছে।`});
+        setFiles(files.filter(f => !selectedRows.includes(f.id)));
         setSelectedRows([]);
-        router.refresh();
       } catch (error) {
         toast({ variant: 'destructive', title: 'ত্রুটি', description: 'ডিলিট করতে সমস্যা হয়েছে।'});
       }
@@ -938,7 +932,7 @@ export default function FilesPageContent({
      toast({ variant: 'destructive', title: 'কোনো ফাইল নির্বাচন করা হয়নি', description: 'প্রিন্ট করার জন্য অনুগ্রহ করে কমপক্ষে একটি ফাইল নির্বাচন করুন।'});
      return;
     }
-    const filteredIds = allFiles.filter(f => selectedRows.includes(f.id) && (type === 'certificate' ? f.hasCertificate : f.hasElectricityBill)).map(f => f.id);
+    const filteredIds = files.filter(f => selectedRows.includes(f.id) && (type === 'certificate' ? f.hasCertificate : f.hasElectricityBill)).map(f => f.id);
     
     if(filteredIds.length === 0){
         toast({ variant: 'destructive', title: 'প্রিন্টের জন্য উপযুক্ত ফাইল নেই', description: `নির্বাচিত ফাইলগুলোর মধ্যে কোনোটির ${type === 'certificate' ? 'প্রত্যয়নপত্র' : 'বিদ্যুৎ বিল'} নেই।`});
@@ -955,23 +949,20 @@ export default function FilesPageContent({
   }
 
   const handlePrintFiltered = () => {
-    const idsToPrint = displayedFiles.map(f => f.id);
-    if (idsToPrint.length === 0) {
-        toast({ variant: 'destructive', title: 'প্রিন্টের জন্য কোনো ফাইল নেই', description: 'বর্তমান ফিল্টার অনুযায়ী কোনো ফাইল পাওয়া যায়নি।'});
-        return;
-    }
-    const url = `/files/print?ids=${idsToPrint.join(',')}`;
+    const printSearchParams = new URLSearchParams(searchParams);
+    printSearchParams.delete('page');
+    const url = `/files/print?${printSearchParams.toString()}`;
     window.open(url, '_blank');
   };
 
   const handleSelectAll = (checked: boolean) => {
-    setSelectedRows(checked ? displayedFiles.map((f) => f.id) : []);
+    setSelectedRows(checked ? files.map((f) => f.id) : []);
   };
 
   const handleSelectRow = (id: string, checked: boolean) => {
     setSelectedRows(checked ? [...selectedRows, id] : selectedRows.filter((rowId) => rowId !== id));
   };
-  const isAllSelected = displayedFiles.length > 0 && selectedRows.length === displayedFiles.length;
+  const isAllSelected = files.length > 0 && selectedRows.length === files.length;
 
   const isDialogOpen = dialogState.mode !== null;
   const getDialogTitle = () => {
@@ -997,6 +988,7 @@ export default function FilesPageContent({
   };
   
    const renderFilterInput = () => {
+    const filter = searchParams.get('filter') || 'all';
     switch (filter) {
         case 'specific_date':
             return (
@@ -1004,15 +996,18 @@ export default function FilesPageContent({
                     <PopoverTrigger asChild>
                     <Button variant="outline" className="w-full md:w-[280px] justify-start text-left font-normal">
                         <CalendarIcon className="mr-2 h-4 w-4" />
-                        {specificDate ? format(specificDate, 'dd/MM/yyyy') : <span>একটি তারিখ বাছাই করুন</span>}
+                        {searchParams.get('date') ? format(parse(searchParams.get('date')!, 'yyyy-MM-dd', new Date()), 'dd/MM/yyyy') : <span>একটি তারিখ বাছাই করুন</span>}
                     </Button>
                     </PopoverTrigger>
                     <PopoverContent className="w-auto p-0">
-                    <Calendar mode="single" selected={specificDate} onSelect={setSpecificDate} initialFocus />
+                    <Calendar mode="single" selected={searchParams.get('date') ? parse(searchParams.get('date')!, 'yyyy-MM-dd', new Date()) : undefined} onSelect={(date) => handleFilterChange('date', date ? format(date, 'yyyy-MM-dd') : null)} initialFocus />
                     </PopoverContent>
                 </Popover>
             );
         case 'custom':
+            const from = searchParams.get('from');
+            const to = searchParams.get('to');
+            const dateRange: DateRange | undefined = from ? { from: parse(from, 'yyyy-MM-dd', new Date()), to: to ? parse(to, 'yyyy-MM-dd', new Date()) : undefined } : undefined;
             return (
                 <Popover>
                     <PopoverTrigger asChild>
@@ -1022,7 +1017,10 @@ export default function FilesPageContent({
                     </Button>
                     </PopoverTrigger>
                     <PopoverContent className="w-auto p-0" align="start">
-                    <Calendar initialFocus mode="range" defaultMonth={dateRange?.from} selected={dateRange} onSelect={setDateRange} numberOfMonths={2}/>
+                    <Calendar initialFocus mode="range" defaultMonth={dateRange?.from} selected={dateRange} onSelect={(range) => {
+                        handleFilterChange('from', range?.from ? format(range.from, 'yyyy-MM-dd') : null)
+                        handleFilterChange('to', range?.to ? format(range.to, 'yyyy-MM-dd') : null)
+                    }} numberOfMonths={2}/>
                     </PopoverContent>
                 </Popover>
             );
@@ -1030,14 +1028,14 @@ export default function FilesPageContent({
              return (
                 <Input
                     type="month"
-                    value={format(specificMonth, 'yyyy-MM')}
-                    onChange={(e) => setSpecificMonth(dateFnsParseIso(e.target.value))}
+                    value={searchParams.get('month') || format(new Date(), 'yyyy-MM')}
+                    onChange={(e) => handleFilterChange('month', e.target.value)}
                     className="w-full md:w-[280px]"
                 />
             );
         case 'yearly':
             return (
-                <Select onValueChange={(value) => setSpecificYear(parseInt(value))} defaultValue={String(specificYear)}>
+                <Select onValueChange={(value) => handleFilterChange('year', value)} defaultValue={searchParams.get('year') || String(new Date().getFullYear())}>
                     <SelectTrigger className="w-full md:w-[180px]">
                         <SelectValue placeholder="বছর নির্বাচন করুন" />
                     </SelectTrigger>
@@ -1080,7 +1078,7 @@ export default function FilesPageContent({
                                 {dialogState.file.hasCertificate ? <Badge variant="secondary">প্রত্যয়নপত্র</Badge> : <Badge variant="outline">প্রত্যয়নপত্র নেই</Badge>}
                                 {dialogState.file.hasElectricityBill ? <Badge variant="secondary">বিদ্যুৎ বিল</Badge> : <Badge variant="outline">বিদ্যুৎ বিল নেই</Badge>}
                             </div>
-                            <p><strong>তৈরির তারিখ:</strong></p><p>{dialogState.file.createdAt ? formatInTimeZone(dateFnsParseIso(dialogState.file.createdAt), 'Asia/Dhaka', 'PPpp') : ''}</p>
+                            <p><strong>তৈরির তারিখ:</strong></p><p>{dialogState.file.createdAt ? formatInTimeZone(parse(dialogState.file.createdAt, "yyyy-MM-dd'T'HH:mm:ss.SSSSSSxxx", new Date()), 'Asia/Dhaka', 'PPpp') : ''}</p>
                         </div>
                     </div>
 
@@ -1153,7 +1151,7 @@ export default function FilesPageContent({
           <CardDescription>এখানে সকল ফাইল দেখুন, পরিচালনা করুন ও প্রিন্ট করুন।</CardDescription>
         </div>
          <div className="flex flex-col md:flex-row gap-2">
-            <Button variant="outline" onClick={handlePrintFiltered} disabled={displayedFiles.length === 0}>
+            <Button variant="outline" onClick={handlePrintFiltered}>
                 <Printer className="mr-2 h-4 w-4" />
                 প্রিন্ট
             </Button>
@@ -1255,14 +1253,13 @@ export default function FilesPageContent({
                 <DropdownMenuTrigger asChild>
                     <Button variant="outline" className="w-full md:w-auto">
                         ফিল্টার: {
-                            filter === 'lifetime' ? 'লাইফটাইম' :
-                            filter === 'daily' ? 'দৈনিক' :
-                            filter === 'weekly' ? 'সাপ্তাহিক' :
-                            filter === 'monthly' ? 'মাসিক' :
-                            filter === 'yearly' ? 'বাৎসরিক' :
-                            filter === 'specific_date' ? 'নির্দিষ্ট দিন' :
-                            filter === 'specific_month' ? 'নির্দিষ্ট মাস' :
-                            'কাস্টম রেঞ্জ'
+                           searchParams.get('filter') === 'daily' ? 'দৈনিক' :
+                           searchParams.get('filter') === 'weekly' ? 'সাপ্তাহিক' :
+                           searchParams.get('filter') === 'monthly' ? 'মাসিক' :
+                           searchParams.get('filter') === 'yearly' ? 'বাৎসরিক' :
+                           searchParams.get('filter') === 'specific_date' ? 'নির্দিষ্ট দিন' :
+                           searchParams.get('filter') === 'specific_month' ? 'নির্দিষ্ট মাস' :
+                           searchParams.get('filter') === 'custom' ? 'কাস্টম রেঞ্জ' : 'সব ফাইল'
                         }
                         <ChevronDown className="ml-2 h-4 w-4" />
                     </Button>
@@ -1270,8 +1267,8 @@ export default function FilesPageContent({
                 <DropdownMenuContent>
                     <DropdownMenuLabel>সময়সীমা অনুযায়ী ফিল্টার</DropdownMenuLabel>
                     <DropdownMenuSeparator />
-                    <DropdownMenuRadioGroup value={filter} onValueChange={(v) => setFilter(v as FilterType)}>
-                        <DropdownMenuRadioItem value="lifetime">লাইফটাইম</DropdownMenuRadioItem>
+                    <DropdownMenuRadioGroup value={searchParams.get('filter') || 'all'} onValueChange={(v) => handleFilterChange('filter', v === 'all' ? null : v)}>
+                        <DropdownMenuRadioItem value="all">সব ফাইল</DropdownMenuRadioItem>
                         <DropdownMenuRadioItem value="daily">দৈনিক</DropdownMenuRadioItem>
                         <DropdownMenuRadioItem value="weekly">সাপ্তাহিক</DropdownMenuRadioItem>
                         <DropdownMenuRadioItem value="monthly">মাসিক</DropdownMenuRadioItem>
@@ -1283,10 +1280,35 @@ export default function FilesPageContent({
                 </DropdownMenuContent>
             </DropdownMenu>
             {renderFilterInput()}
+             <Popover>
+                <PopoverTrigger asChild>
+                    <Button variant="outline" role="combobox" className="w-full md:w-auto justify-between">
+                        {searchParams.get('clientId') ? clients.find((c) => c.id === searchParams.get('clientId'))?.name : "ক্লায়েন্ট ফিল্টার"}
+                        <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                    </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-[--radix-popover-trigger-width] p-0">
+                    <Command>
+                        <CommandInput placeholder="ক্লায়েন্ট খুঁজুন..." />
+                         <Button variant="ghost" className="w-full justify-start text-sm" onClick={() => handleFilterChange('clientId', null)}>সব ক্লায়েন্ট</Button>
+                        <CommandEmpty>কোনো ক্লায়েন্ট পাওয়া যায়নি।</CommandEmpty>
+                        <CommandList>
+                            <CommandGroup>
+                            {clients.map((client) => (
+                                <CommandItem value={client.name} key={client.id} onSelect={() => handleFilterChange('clientId', client.id)}>
+                                <Check className={cn("mr-2 h-4 w-4", client.id === searchParams.get('clientId') ? "opacity-100" : "opacity-0")} />
+                                {client.name}
+                                </CommandItem>
+                            ))}
+                            </CommandGroup>
+                        </CommandList>
+                    </Command>
+                </PopoverContent>
+            </Popover>
         </div>
-        {displayedFiles.length === 0 ? (
+        {files.length === 0 ? (
           <div className="text-center py-16 text-muted-foreground">
-            <p>এই সময়সীমার মধ্যে কোনো ফাইল পাওয়া যায়নি।</p>
+            <p>এই ফিল্টার অনুযায়ী কোনো ফাইল পাওয়া যায়নি।</p>
             <p className="text-sm">অন্য একটি ফিল্টার চেষ্টা করুন অথবা নতুন ফাইল যোগ করুন।</p>
           </div>
         ) : (
@@ -1307,7 +1329,7 @@ export default function FilesPageContent({
                 </TableRow>
                 </TableHeader>
                 <TableBody>
-                {displayedFiles.map((file) => {
+                {files.map((file) => {
                     return (
                     <TableRow key={file.id} data-state={selectedRows.includes(file.id) ? "selected" : undefined} onMouseEnter={() => {
                         if (file.hasCertificate) router.prefetch(`/certificates/print/bulk?ids=${file.id}`);
@@ -1328,7 +1350,7 @@ export default function FilesPageContent({
                             )}
                         </div>
                     </TableCell>
-                    <TableCell>{file.createdAt ? format(dateFnsParseIso(file.createdAt), 'dd/MM/yyyy') : ''}</TableCell>
+                    <TableCell>{file.createdAt ? format(parse(file.createdAt, "yyyy-MM-dd'T'HH:mm:ss.SSSSSSxxx", new Date()), 'dd/MM/yyyy') : ''}</TableCell>
                     <TableCell>
                         <DropdownMenu>
                         <DropdownMenuTrigger asChild><Button aria-haspopup="true" size="icon" variant="ghost"><MoreHorizontal className="h-4 w-4" /><span className="sr-only">Toggle menu</span></Button></DropdownMenuTrigger>
@@ -1387,7 +1409,7 @@ export default function FilesPageContent({
                  <Checkbox id="selectAllMobile" checked={isAllSelected} onCheckedChange={(checked) => handleSelectAll(Boolean(checked))} aria-label="Select all"/>
                  <label htmlFor="selectAllMobile" className='text-sm font-medium'>সবগুলো নির্বাচন করুন</label>
               </div>
-              {displayedFiles.map((file) => (
+              {files.map((file) => (
                 <Card key={file.id} className={cn("relative", selectedRows.includes(file.id) && "border-primary ring-2 ring-primary")} onMouseEnter={() => {
                         if (file.hasCertificate) router.prefetch(`/certificates/print/${file.id}`);
                         if (file.hasElectricityBill) router.prefetch(`/electricity-bills/print/${file.id}`);
@@ -1455,7 +1477,7 @@ export default function FilesPageContent({
                     <p><strong>জন্ম তারিখ/সাল:</strong></p>
                     <p>{formatDobForDisplay(file.dob)}</p>
                     <p><strong>তৈরির তারিখ:</strong></p>
-                    <p>{file.createdAt ? format(dateFnsParseIso(file.createdAt), 'dd/MM/yyyy') : ''}</p>
+                    <p>{file.createdAt ? format(parse(file.createdAt, "yyyy-MM-dd'T'HH:mm:ss.SSSSSSxxx", new Date()), 'dd/MM/yyyy') : ''}</p>
                     <p><strong>ডকুমেন্টস:</strong></p>
                     <div className="flex gap-2">
                         {file.hasCertificate && <Badge variant={file.certificate_status === 'প্রিন্ট হয়েছে' ? 'default' : 'secondary'} className="px-1.5 py-0"><Award className="h-3 w-3 mr-1" />প্রত্যয়ন</Badge>}
@@ -1467,6 +1489,14 @@ export default function FilesPageContent({
               ))}
             </div>
           </>
+        )}
+        {files.length < totalFiles && (
+            <div className="flex justify-center mt-6">
+                <Button onClick={loadMoreFiles} disabled={isLoadingMore}>
+                    {isLoadingMore && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                    আরো লোড করুন
+                </Button>
+            </div>
         )}
       </CardContent>
       

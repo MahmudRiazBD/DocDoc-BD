@@ -5,9 +5,11 @@
 import { createClient } from '@/lib/supabase/server';
 import { revalidatePath } from 'next/cache';
 import { AppFile, User, Institution, Client, BillAddress, BillTemplate, RechargeEntry, DashboardStatsData, ChartDataPoint } from '../types';
-import { differenceInDays, endOfMonth, getWeekOfMonth, parseISO, startOfYear, endOfYear, add, format } from 'date-fns';
+import { differenceInDays, endOfMonth, getWeekOfMonth, parseISO, startOfYear, endOfYear, add, format, startOfDay, endOfDay, startOfWeek, endOfWeek, startOfMonth } from 'date-fns';
 import { formatInTimeZone, toDate } from 'date-fns-tz';
 import { bn } from 'date-fns/locale';
+
+const PAGE_SIZE = 10;
 
 // Generic function for handling Supabase errors
 function handleError(error: any, context: string) {
@@ -118,7 +120,68 @@ const mapFileDataToAppFile = (file: any): AppFile => ({
     bill_status: file.bill_status,
 });
 
-export async function getFiles(dailyOnly = false): Promise<AppFile[]> {
+const applyTimeFilters = (query: any, options: { filter?: string, date?: string, from?: string, to?: string, month?: string, year?: string }) => {
+    const { filter, date, from, to, month, year } = options;
+    const now = new Date();
+    let startDate: Date | null = null;
+    let endDate: Date | null = null;
+    
+    switch (filter) {
+        case 'daily':
+            startDate = startOfDay(now);
+            endDate = endOfDay(now);
+            break;
+        case 'weekly':
+            startDate = startOfWeek(now);
+            endDate = endOfWeek(now);
+            break;
+        case 'monthly':
+            startDate = startOfMonth(now);
+            endDate = endOfMonth(now);
+            break;
+        case 'yearly':
+            const y = year ? parseInt(year, 10) : now.getFullYear();
+            startDate = startOfYear(new Date(y, 0, 1));
+            endDate = endOfYear(new Date(y, 11, 31));
+            break;
+        case 'specific_date':
+            if (date) {
+                const d = parseISO(date);
+                startDate = startOfDay(d);
+                endDate = endOfDay(d);
+            }
+            break;
+        case 'specific_month':
+             if(month) {
+                const m = parseISO(month);
+                startDate = startOfMonth(m);
+                endDate = endOfMonth(m);
+            }
+            break;
+        case 'custom':
+            if (from) startDate = startOfDay(parseISO(from));
+            if (to) endDate = endOfDay(parseISO(to));
+            break;
+    }
+
+    if (startDate) query = query.gte('created_at', startDate.toISOString());
+    if (endDate) query = query.lte('created_at', endDate.toISOString());
+
+    return query;
+}
+
+export async function getFiles(options: { 
+    page?: number; 
+    paginate?: boolean;
+    filter?: string;
+    clientId?: string;
+    date?: string;
+    from?: string;
+    to?: string;
+    month?: string;
+    year?: string;
+} = {}): Promise<AppFile[]> {
+    const { page = 1, paginate = true, clientId, ...timeFilterOptions } = options;
     const supabaseAdmin = createClient();
     
     let query = supabaseAdmin
@@ -130,24 +193,52 @@ export async function getFiles(dailyOnly = false): Promise<AppFile[]> {
         `)
         .order('serial_no', { ascending: false });
 
-    if (dailyOnly) {
-        // Vercel runs in UTC, so we must explicitly use a timezone-aware method.
-        const timeZone = 'Asia/Dhaka';
-        const now = new Date();
-        const startOfDay = toDate(formatInTimeZone(now, timeZone, 'yyyy-MM-dd') + 'T00:00:00.000', { timeZone });
-        const endOfDay = toDate(formatInTimeZone(now, timeZone, 'yyyy-MM-dd') + 'T23:59:59.999', { timeZone });
-
-        query = query
-            .gte('created_at', startOfDay.toISOString())
-            .lte('created_at', endOfDay.toISOString());
+    query = applyTimeFilters(query, timeFilterOptions);
+    
+    if (clientId) {
+        query = query.eq('client_id', clientId);
+    }
+    
+    if (paginate) {
+        const startIndex = (page - 1) * PAGE_SIZE;
+        const endIndex = startIndex + PAGE_SIZE - 1;
+        query = query.range(startIndex, endIndex);
     }
 
     const { data, error } = await query;
-
     if (error) handleError(error, 'getFiles');
 
     return data?.map(mapFileDataToAppFile) || [];
 }
+
+export async function getFilesCount(options: { 
+    filter?: string;
+    clientId?: string;
+    date?: string;
+    from?: string;
+    to?: string;
+    month?: string;
+    year?: string;
+} = {}): Promise<number> {
+     const { clientId, ...timeFilterOptions } = options;
+    const supabaseAdmin = createClient();
+    
+    let query = supabaseAdmin
+        .from('files')
+        .select('id', { count: 'exact', head: true });
+
+    query = applyTimeFilters(query, timeFilterOptions);
+
+    if (clientId) {
+        query = query.eq('client_id', clientId);
+    }
+
+    const { count, error } = await query;
+    if (error) handleError(error, 'getFilesCount');
+
+    return count || 0;
+}
+
 
 export async function getFilesByIds(ids: string[]): Promise<AppFile[]> {
     const supabaseAdmin = createClient();

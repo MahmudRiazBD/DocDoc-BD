@@ -5,7 +5,7 @@ import React, { useEffect, useState, Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { Loader2, Award, Bolt } from 'lucide-react';
 import { AppFile } from '@/lib/types';
-import { getFilesByIds } from '@/lib/supabase/database';
+import { getFiles } from '@/lib/supabase/database';
 import { isValid, parse } from 'date-fns';
 import { toDate, formatInTimeZone } from 'date-fns-tz';
 
@@ -47,21 +47,31 @@ const formatDobForDisplay = (dob: string | undefined): string => {
 
 const PrintContent = () => {
   const searchParams = useSearchParams();
-  const ids = searchParams.get('ids');
   const [files, setFiles] = useState<AppFile[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     const fetchAllData = async () => {
-      if (!ids) {
-        setError('কোনো ফাইল আইডি পাওয়া যায়নি।');
-        setLoading(false);
-        return;
-      }
-      const fileIds = ids.split(',');
+       const filter = searchParams.get('filter') || undefined;
+        const clientId = searchParams.get('clientId') || undefined;
+        const date = searchParams.get('date') || undefined;
+        const from = searchParams.get('from') || undefined;
+        const to = searchParams.get('to') || undefined;
+        const month = searchParams.get('month') || undefined;
+        const year = search-params.get('year') || undefined;
+
       try {
-        const fetchedFiles = await getFilesByIds(fileIds);
+        const fetchedFiles = await getFiles({ 
+          paginate: false,
+          filter,
+          clientId,
+          date,
+          from,
+          to,
+          month,
+          year
+        });
         
         fetchedFiles.sort((a, b) => {
             if (a.clientName < b.clientName) return -1;
@@ -80,7 +90,7 @@ const PrintContent = () => {
     };
 
     fetchAllData();
-  }, [ids]);
+  }, [searchParams]);
 
   useEffect(() => {
     if (!loading && files.length > 0 && !error) {
