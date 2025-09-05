@@ -1394,8 +1394,8 @@ export default function FilesPageContent({
                       const displayName = file.applicantNameBn || file.applicantNameEn;
                       return (
                       <TableRow key={file.id} data-state={selectedRows.includes(file.id) ? "selected" : undefined} onMouseEnter={() => {
-                          if (file.hasCertificate) router.prefetch(`/certificates/print/bulk?ids=${file.id}`);
-                          if (file.hasElectricityBill) router.prefetch(`/electricity-bills/print/bulk?ids=${file.id}`);
+                          if (file.hasCertificate) router.prefetch(`/certificates/print/${file.id}`);
+                          if (file.hasElectricityBill) router.prefetch(`/electricity-bills/print/${file.id}`);
                       }}>
                       <TableCell><Checkbox checked={selectedRows.includes(file.id)} onCheckedChange={(checked) => handleSelectRow(file.id, Boolean(checked))} aria-label={`Select row ${file.id}`}/></TableCell>
                       <TableCell className="font-mono">{file.serial_no.toString().padStart(4, '0')}</TableCell>
@@ -1587,3 +1587,5 @@ export default function FilesPageContent({
   );
 }
   
+
+    
