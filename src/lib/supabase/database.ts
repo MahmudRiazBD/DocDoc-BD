@@ -1,5 +1,6 @@
 
 
+
 // A file for interacting with the Supabase database
 'use server';
 
@@ -396,8 +397,8 @@ export async function getInstitution(id: string): Promise<Institution | null> {
         website: data.website,
         createdAt: data.created_at,
         logoUrl: data.logo_url,
-        signatureUrl1: data.signatureUrl1,
-        signatureUrl2: data.signatureUrl2,
+        signatureUrl1: data.signature_url_1,
+        signatureUrl2: data.signature_url_2,
         collegeCode: data.college_code,
         schoolCode: data.school_code,
         certificateText: data.certificate_text,
@@ -437,8 +438,8 @@ export async function addInstitution(institution: Omit<Institution, 'id' | 'crea
         website: data.website,
         createdAt: data.created_at,
         logoUrl: data.logo_url,
-        signatureUrl1: data.signatureUrl1,
-        signatureUrl2: data.signatureUrl2,
+        signatureUrl1: data.signature_url_1,
+        signatureUrl2: data.signature_url_2,
         collegeCode: data.college_code,
         schoolCode: data.school_code,
         certificateText: data.certificate_text,
