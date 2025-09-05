@@ -96,12 +96,13 @@ const parseDateString = (dateString: string): Date | null => {
     const englishDateString = toEnglish(dateString.trim());
     
     // Regex to match dd/mm/yyyy, dd-mm-yyyy, or dd.mm.yyyy with flexible day/month digits
-    const dateRegex = /^(?<day>\d{1,2})[\/\-.]+(?<month>\d{1,2})[\/\-.]+(?<year>\d{4})$/;
+    const dateRegex = /^(?<day>\d{1,2})(?<sep>[\/\-.])(?<month>\d{1,2})\k<sep>(?<year>\d{4})$/;
     const match = englishDateString.match(dateRegex);
 
     if (match?.groups) {
-        // use parse from date-fns
-        const parsedDate = parse(englishDateString, 'dd/MM/yyyy', new Date());
+        const separator = match.groups.sep;
+        const formatString = `dd${separator}MM${separator}yyyy`;
+        const parsedDate = parse(englishDateString, formatString, new Date());
         if (isValid(parsedDate)) {
             return parsedDate;
         }
@@ -146,7 +147,7 @@ const fileSchema = z.object({
 
     if (data.createCertificate) {
         if (!isBengali(data.applicantName)) {
-             ctx.addIssue({ code: z.ZodIssueCode.custom, message: 'প্রত্যয়নপত্রের জন্য আবেদনকারীর নাম অবশ্যই বাংলায় লিখতে হবে।', path: ['applicantName'] });
+             ctx.addIssue({ code: z.ZodIssueCode.custom, message: 'আবেদনকারীর নাম অবশ্যই বাংলায় লিখতে হবে।', path: ['applicantName'] });
         }
         if (!parseDateString(dob)) {
             ctx.addIssue({ code: z.ZodIssueCode.custom, message: 'প্রত্যয়নপত্রের জন্য সম্পূর্ণ জন্ম তারিখ আবশ্যক (DD/MM/YYYY)', path: ['dob'] });
@@ -1446,7 +1447,7 @@ export default function FilesPageContent({
                                     </DropdownMenuItem>
                                     )}
                                     {file.hasElectricityBill && (
-                                    <DropdownMenuItem onClick={() => handleStatusChange(file, 'bill', file.bill_status === 'প্রিন্ট হয়েছে' ? 'প্রিন্ট হয়নি' : 'প্রিন্ট হয়েছে')}>
+                                    <DropdownMenuItem onClick={() => handleStatusChange(file, 'bill', file.bill_status === 'প্রিন্ট হয়েছে' ? 'প্রিন্ট হয়নি' : 'প্রিন্ট হয়েছে')}>
                                         বিদ্যুৎ বিল: {file.bill_status === 'প্রিন্ট হয়েছে' ? 'প্রিন্ট বাকি' : 'প্রিন্ট হয়েছে'}
                                     </DropdownMenuItem>
                                     )}
