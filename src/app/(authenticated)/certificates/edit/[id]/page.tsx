@@ -110,7 +110,7 @@ export default function EditCertificatePage() {
                     // keep original if parsing fails
                 }
                 form.reset({
-                    name: fileData.applicantName,
+                    name: fileData.applicantNameBn || fileData.applicantNameEn || '',
                     fatherName: fileData.fatherName ?? '',
                     motherName: fileData.motherName ?? '',
                     dob: formattedDob,
@@ -191,7 +191,7 @@ export default function EditCertificatePage() {
        const dobForDb = formatDate(parsedDob, 'yyyy-MM-dd');
 
       const fileUpdateData: Partial<AppFile> = {
-        applicantName: values.name,
+        applicantNameBn: values.name,
         fatherName: values.fatherName,
         motherName: values.motherName,
         dob: dobForDb,

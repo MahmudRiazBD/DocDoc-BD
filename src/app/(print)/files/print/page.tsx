@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import React, { useEffect, useState, Suspense } from 'react';
@@ -59,7 +60,7 @@ const PrintContent = () => {
         const from = searchParams.get('from') || undefined;
         const to = searchParams.get('to') || undefined;
         const month = searchParams.get('month') || undefined;
-        const year = search-params.get('year') || undefined;
+        const year = searchParams.get('year') || undefined;
 
       try {
         const fetchedFiles = await getFiles({ 
@@ -162,7 +163,7 @@ const PrintContent = () => {
                     {clientFiles.map((file) => (
                     <tr key={file.id} className="border-t border-gray-200">
                         <td className="p-2 text-center font-mono">{toBengaliNumber(file.serial_no)}</td>
-                        <td className="p-2">{file.applicantName}</td>
+                        <td className="p-2">{file.applicantNameBn || file.applicantNameEn}</td>
                         <td className="p-2">{formatDobForDisplay(file.dob)}</td>
                         <td className="p-2">
                            <div className='flex items-center gap-2'>

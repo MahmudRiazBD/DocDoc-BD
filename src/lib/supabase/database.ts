@@ -1,11 +1,12 @@
 
+
 // A file for interacting with the Supabase database
 'use server';
 
 import { createClient } from '@/lib/supabase/server';
 import { revalidatePath } from 'next/cache';
 import { AppFile, User, Institution, Client, BillAddress, BillTemplate, RechargeEntry, DashboardStatsData, ChartDataPoint } from '../types';
-import { differenceInDays, endOfMonth, getWeekOfMonth, parse, startOfYear, endOfYear, add, startOfDay, endOfDay, startOfWeek, endOfWeek, startOfMonth } from 'date-fns';
+import { differenceInDays, getWeekOfMonth, parse, startOfYear, endOfYear, add, startOfDay, endOfDay, startOfWeek, endOfMonth, startOfMonth } from 'date-fns';
 import { formatInTimeZone, toDate } from 'date-fns-tz';
 import { bn } from 'date-fns/locale';
 
@@ -22,7 +23,8 @@ function handleError(error: any, context: string) {
 export async function addFile(file: Partial<AppFile>): Promise<AppFile> {
   const supabaseAdmin = createClient();
   const insertData = {
-    applicant_name: file.applicantName,
+    applicant_name_bn: file.applicantNameBn,
+    applicant_name_en: file.applicantNameEn,
     dob: file.dob,
     client_id: file.clientId,
     client_name: file.clientName,
@@ -43,7 +45,6 @@ export async function addFile(file: Partial<AppFile>): Promise<AppFile> {
     // Bill fields
     bill_template_id: file.bill_template_id,
     bill_holder_name: file.bill_holder_name,
-    applicant_name_english: file.applicantNameEnglish,
     father_name_english: file.fatherNameEnglish,
     bill_customer_no: file.bill_customer_no,
     bill_sanc_load: file.bill_sanc_load,
@@ -71,7 +72,8 @@ export async function addFile(file: Partial<AppFile>): Promise<AppFile> {
   const result: AppFile = {
       id: data.id,
       serial_no: data.serial_no,
-      applicantName: data.applicant_name,
+      applicantNameBn: data.applicant_name_bn,
+      applicantNameEn: data.applicant_name_en,
       dob: data.dob,
       clientId: data.client_id,
       clientName: data.client_name,
@@ -88,7 +90,8 @@ const mapFileDataToAppFile = (file: any): AppFile => ({
     createdAt: file.created_at,
     clientId: file.client_id,
     clientName: file.client_name,
-    applicantName: file.applicant_name,
+    applicantNameBn: file.applicant_name_bn,
+    applicantNameEn: file.applicant_name_en,
     dob: file.dob,
     hasCertificate: file.has_certificate,
     hasElectricityBill: file.has_electricity_bill,
@@ -109,7 +112,6 @@ const mapFileDataToAppFile = (file: any): AppFile => ({
     bill_template_name: file.bill_templates?.name,
     bill_template_logo_url: file.bill_templates?.logo_url,
     bill_holder_name: file.bill_holder_name,
-    applicantNameEnglish: file.applicant_name_english,
     fatherNameEnglish: file.father_name_english,
     bill_customer_no: file.bill_customer_no,
     bill_sanc_load: file.bill_sanc_load,
@@ -278,7 +280,8 @@ export async function updateFile(id: string, file: Partial<AppFile>): Promise<vo
     const updateData: { [key: string]: any } = {};
 
     // Core file info
-    if (file.applicantName !== undefined) updateData.applicant_name = file.applicantName;
+    if (file.applicantNameBn !== undefined) updateData.applicant_name_bn = file.applicantNameBn;
+    if (file.applicantNameEn !== undefined) updateData.applicant_name_en = file.applicantNameEn;
     if (file.clientId !== undefined) updateData.client_id = file.clientId;
     if (file.clientName !== undefined) updateData.client_name = file.clientName;
     if (file.dob !== undefined) updateData.dob = file.dob;

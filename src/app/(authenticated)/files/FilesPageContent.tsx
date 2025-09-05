@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import React, { useState, useEffect, useTransition, useMemo } from 'react';
@@ -326,7 +327,8 @@ export const FileForm = ({
             : values.dob;
 
         const fileData: Partial<AppFile> = { 
-            applicantName: values.applicantName,
+            applicantNameBn: isBengali(values.applicantName) ? values.applicantName : null,
+            applicantNameEn: isEnglish(values.applicantName) ? values.applicantName : (createElectricityBill && applicantAge && applicantAge >= 24 ? values.applicantNameEnglish : null),
             clientId: values.clientId,
             clientName: selectedClient.name,
             dob: dobForDb,
@@ -374,7 +376,9 @@ export const FileForm = ({
                 } else {
                     // If applicant name is already in english, use it. Otherwise use the separate english name field.
                     billHolderName = isEnglish(values.applicantName) ? values.applicantName : values.applicantNameEnglish!;
-                    fileData.applicantNameEnglish = billHolderName;
+                    if (isBengali(values.applicantName)) {
+                      fileData.applicantNameEn = billHolderName;
+                    }
                 }
 
                 const randomAddress = activeAddresses[Math.floor(Math.random() * activeAddresses.length)];
@@ -562,7 +566,8 @@ export const FileForm = ({
 
 
 const editFileSchema = z.object({
-  applicantName: z.string().min(1, 'আবেদনকারীর নাম আবশ্যক'),
+  applicantNameBn: z.string().optional(),
+  applicantNameEn: z.string().optional(),
   clientId: z.string({ required_error: 'ক্লায়েন্ট নির্বাচন করুন' }),
   dob: z.string().min(4, 'জন্ম তারিখ বা সাল আবশ্যক'),
   institutionId: z.string().optional(),
@@ -607,7 +612,8 @@ const EditFileForm = ({
     const form = useForm<EditFileSchema>({
         resolver: zodResolver(editFileSchema),
         defaultValues: {
-            applicantName: file.applicantName,
+            applicantNameBn: file.applicantNameBn ?? '',
+            applicantNameEn: file.applicantNameEn ?? '',
             clientId: file.clientId,
             dob: file.dob,
             institutionId: file.institutionId ?? undefined,
@@ -621,7 +627,8 @@ const EditFileForm = ({
             try {
                 const fileUpdates: Partial<AppFile> = {};
                 
-                if(file.applicantName !== values.applicantName) fileUpdates.applicantName = values.applicantName;
+                if(file.applicantNameBn !== values.applicantNameBn) fileUpdates.applicantNameBn = values.applicantNameBn;
+                if(file.applicantNameEn !== values.applicantNameEn) fileUpdates.applicantNameEn = values.applicantNameEn;
                 if(file.clientId !== values.clientId) {
                     const selectedClient = clients.find(c => c.id === values.clientId);
                     fileUpdates.clientId = values.clientId;
@@ -679,11 +686,16 @@ const EditFileForm = ({
     return (
         <Form {...form}>
         <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-            <FormField control={form.control} name="applicantName" render={({ field }) => (
-                <FormItem><FormLabel>আবেদনকারীর নাম</FormLabel>
+            {file.applicantNameBn && <FormField control={form.control} name="applicantNameBn" render={({ field }) => (
+                <FormItem><FormLabel>আবেদনকারীর নাম (বাংলা)</FormLabel>
                 <FormControl><Input {...field} /></FormControl>
                 <FormMessage /></FormItem>
-            )} />
+            )} />}
+            {file.applicantNameEn && <FormField control={form.control} name="applicantNameEn" render={({ field }) => (
+                <FormItem><FormLabel>আবেদনকারীর নাম (ইংরেজি)</FormLabel>
+                <FormControl><Input {...field} /></FormControl>
+                <FormMessage /></FormItem>
+            )} />}
             <FormField control={form.control} name="dob" render={({ field }) => (
                 <FormItem><FormLabel>জন্ম তারিখ বা সাল</FormLabel>
                 <FormControl><Input placeholder="DD/MM/YYYY বা YYYY" {...field} /></FormControl>
@@ -1097,12 +1109,13 @@ export default function FilesPageContent({
     switch (dialogState.mode) {
         case 'view':
             if (!dialogState.file) return null;
+            const displayName = dialogState.file.applicantNameBn || dialogState.file.applicantNameEn;
             return (
                 <div className='space-y-4 text-sm pt-4'>
                     <div>
                         <h3 className="font-semibold mb-2 text-base">ফাইলের তথ্য</h3>
                         <div className="grid grid-cols-2 gap-x-4 gap-y-1">
-                            <p><strong>আবেদনকারীর নাম:</strong></p><p>{dialogState.file.applicantName}</p>
+                            <p><strong>আবেদনকারীর নাম:</strong></p><p>{displayName}</p>
                             <p><strong>জন্ম তারিখ/সাল:</strong></p><p>{formatDobForDisplay(dialogState.file.dob)}</p>
                             <p><strong>ক্লায়েন্টের নাম:</strong></p><p>{dialogState.file.clientName}</p>
                             <div className="flex items-center"><strong>ডকুমেন্টস:</strong></div>
@@ -1362,6 +1375,7 @@ export default function FilesPageContent({
                 </TableHeader>
                 <TableBody>
                 {files.map((file) => {
+                    const displayName = file.applicantNameBn || file.applicantNameEn;
                     return (
                     <TableRow key={file.id} data-state={selectedRows.includes(file.id) ? "selected" : undefined} onMouseEnter={() => {
                         if (file.hasCertificate) router.prefetch(`/certificates/print/bulk?ids=${file.id}`);
@@ -1369,7 +1383,7 @@ export default function FilesPageContent({
                     }}>
                     <TableCell><Checkbox checked={selectedRows.includes(file.id)} onCheckedChange={(checked) => handleSelectRow(file.id, Boolean(checked))} aria-label={`Select row ${file.id}`}/></TableCell>
                     <TableCell className="font-mono">{file.serial_no.toString().padStart(4, '0')}</TableCell>
-                    <TableCell className="font-medium">{file.applicantName}</TableCell>
+                    <TableCell className="font-medium">{displayName}</TableCell>
                     <TableCell>{formatDobForDisplay(file.dob)}</TableCell>
                     <TableCell>{file.clientName}</TableCell>
                     <TableCell>
@@ -1441,7 +1455,9 @@ export default function FilesPageContent({
                  <Checkbox id="selectAllMobile" checked={isAllSelected} onCheckedChange={(checked) => handleSelectAll(Boolean(checked))} aria-label="Select all"/>
                  <label htmlFor="selectAllMobile" className='text-sm font-medium'>সবগুলো নির্বাচন করুন</label>
               </div>
-              {files.map((file) => (
+              {files.map((file) => {
+                const displayName = file.applicantNameBn || file.applicantNameEn;
+                return (
                 <Card key={file.id} className={cn("relative", selectedRows.includes(file.id) && "border-primary ring-2 ring-primary")} onMouseEnter={() => {
                         if (file.hasCertificate) router.prefetch(`/certificates/print/${file.id}`);
                         if (file.hasElectricityBill) router.prefetch(`/electricity-bills/print/${file.id}`);
@@ -1451,7 +1467,7 @@ export default function FilesPageContent({
                     </div>
                   <CardHeader className="flex flex-row items-start justify-between pb-2 pl-8">
                     <div className="flex-1">
-                      <CardTitle className="text-base">{file.applicantName}</CardTitle>
+                      <CardTitle className="text-base">{displayName}</CardTitle>
                       <CardDescription>ক্লায়েন্ট: {file.clientName}</CardDescription>
                     </div>
                     <DropdownMenu>
@@ -1518,7 +1534,7 @@ export default function FilesPageContent({
                     </div>
                   </CardContent>
                 </Card>
-              ))}
+              )})}
             </div>
           </>
         )}

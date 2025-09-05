@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import React, { useEffect, useState, useRef } from 'react';
@@ -47,7 +48,8 @@ const toBengaliOrdinal = (classStr: string | undefined | null) => {
 const renderCertificateText = (text: string, file: AppFile) => {
     let renderedText = text || ''; // Ensure text is not undefined
     
-    if (!file.dob || !file.roll || !file.sessionYear || !file.class || !file.fatherName || !file.motherName) {
+    const applicantName = file.applicantNameBn;
+    if (!applicantName || !file.dob || !file.roll || !file.sessionYear || !file.class || !file.fatherName || !file.motherName) {
       return { __html: 'Error: Missing certificate data in file.' };
     }
 
@@ -64,7 +66,7 @@ const renderCertificateText = (text: string, file: AppFile) => {
     const bengaliSessionYear = toBengaliNumber(file.sessionYear);
     const bengaliClass = toBengaliOrdinal(file.class);
 
-    renderedText = renderedText.replace(/{{name}}/g, `<span class="font-bold">${file.applicantName}</span>`);
+    renderedText = renderedText.replace(/{{name}}/g, `<span class="font-bold">${applicantName}</span>`);
     renderedText = renderedText.replace(/{{fatherName}}/g, `<span class="font-semibold">${file.fatherName}</span>`);
     renderedText = renderedText.replace(/{{motherName}}/g, `<span class="font-semibold">${file.motherName}</span>`);
     renderedText = renderedText.replace(/{{dob}}/g, `<span class="font-semibold">${bengaliFormattedDob}</span>`);

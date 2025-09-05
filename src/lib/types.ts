@@ -10,7 +10,8 @@ export interface AppFile {
   clientName: string;
 
   // Core Applicant Information
-  applicantName: string;
+  applicantNameBn?: string | null; // Bengali Name
+  applicantNameEn?: string | null; // English Name
   dob: string; // YYYY-MM-DD or YYYY
 
   // Control flags
@@ -33,7 +34,6 @@ export interface AppFile {
   bill_template_name?: string; // Denormalized
   bill_template_logo_url?: string; // Denormalized
   bill_holder_name?: string | null;
-  applicantNameEnglish?: string | null;
   fatherNameEnglish?: string | null;
   bill_customer_no?: string | null;
   bill_sanc_load?: string | null;
