@@ -3,6 +3,7 @@ import { Hind_Siliguri, Noto_Serif_Bengali } from 'next/font/google';
 import './globals.css';
 import { cn } from '@/lib/utils';
 import { Toaster } from '@/components/ui/toaster';
+import { ThemeProvider } from '@/components/ThemeProvider';
 
 export const metadata: Metadata = {
   title: 'ডকডক বিডি (DocDoc BD)',
@@ -33,11 +34,16 @@ export default function RootLayout({
   return (
     <html lang="bn" suppressHydrationWarning>
       <body className={cn('antialiased font-sans', hindSiliguri.variable, notoSerifBengali.variable)} suppressHydrationWarning={true}>
-        {children}
-        <Toaster />
+        <ThemeProvider
+            attribute="class"
+            defaultTheme="system"
+            enableSystem
+            disableTransitionOnChange
+        >
+            {children}
+            <Toaster />
+        </ThemeProvider>
       </body>
     </html>
   );
 }
-
-    
