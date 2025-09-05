@@ -400,6 +400,7 @@ export const FileForm = ({
                 fileData.bill_template_id = randomAddress.templateId;
                 fileData.bill_recharge_history = generateRechargeHistory(randomAddress.templateId as 'desco' | 'dpdc');
                 fileData.bill_status = 'প্রিন্ট হয়নি';
+                fileData.fatherNameEn = values.fatherNameEnglish;
 
                 toastMessages.push('সংশ্লিষ্ট বিদ্যুৎ বিল সফলভাবে তৈরি করা হয়েছে।');
         }
@@ -1359,93 +1360,93 @@ export default function FilesPageContent({
           <>
             {/* Desktop Table View */}
             <div className='hidden md:block'>
-                <Table>
-                    <TableHeader>
-                    <TableRow>
-                        <TableHead className="w-[40px]"><Checkbox checked={isAllSelected} onCheckedChange={(checked) => handleSelectAll(Boolean(checked))} aria-label="Select all"/></TableHead>
-                        <TableHead>ক্রমিক নং</TableHead>
-                        <TableHead>আবেদনকারীর নাম</TableHead>
-                        <TableHead>জন্ম তারিখ/সাল</TableHead>
-                        <TableHead>ক্লায়েন্টের নাম</TableHead>
-                        <TableHead>ডকুমেন্টস</TableHead>
-                        <TableHead>তৈরির তারিখ</TableHead>
-                        <TableHead><span className="sr-only">Actions</span></TableHead>
-                    </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                    {files.map((file) => {
-                        const displayName = file.applicantNameBn || file.applicantNameEn;
-                        return (
-                        <TableRow key={file.id} data-state={selectedRows.includes(file.id) ? "selected" : undefined} onMouseEnter={() => {
-                            if (file.hasCertificate) router.prefetch(`/certificates/print/bulk?ids=${file.id}`);
-                            if (file.hasElectricityBill) router.prefetch(`/electricity-bills/print/bulk?ids=${file.id}`);
-                        }}>
-                        <TableCell><Checkbox checked={selectedRows.includes(file.id)} onCheckedChange={(checked) => handleSelectRow(file.id, Boolean(checked))} aria-label={`Select row ${file.id}`}/></TableCell>
-                        <TableCell className="font-mono">{file.serial_no.toString().padStart(4, '0')}</TableCell>
-                        <TableCell className="font-medium">{displayName}</TableCell>
-                        <TableCell>{formatDobForDisplay(file.dob)}</TableCell>
-                        <TableCell>{file.clientName}</TableCell>
-                        <TableCell>
-                            <div className="flex gap-2">
-                                {file.hasCertificate && (
-                                    <Badge variant={file.certificate_status === 'প্রিন্ট হয়েছে' ? 'default' : 'secondary'} className="px-1.5 py-0"><Award className="h-3 w-3 mr-1" />প্রত্যয়ন</Badge>
-                                )}
-                                {file.hasElectricityBill && (
-                                    <Badge variant={file.bill_status === 'প্রিন্ট হয়েছে' ? 'default' : 'secondary'} className="px-1.5 py-0"><Bolt className="h-3 w-3 mr-1" />বিদ্যুৎ বিল</Badge>
-                                )}
-                            </div>
-                        </TableCell>
-                        <TableCell>{file.createdAt ? format(parse(file.createdAt, "yyyy-MM-dd'T'HH:mm:ss.SSSSSSxxx", new Date()), 'dd/MM/yyyy') : ''}</TableCell>
-                        <TableCell>
-                            <DropdownMenu>
-                            <DropdownMenuTrigger asChild><Button aria-haspopup="true" size="icon" variant="ghost"><MoreHorizontal className="h-4 w-4" /><span className="sr-only">Toggle menu</span></Button></DropdownMenuTrigger>
-                            <DropdownMenuContent align="end">
-                                <DropdownMenuItem onClick={() => handleViewDetails(file)}><Eye className="mr-2 h-4 w-4" />দেখুন</DropdownMenuItem>
-                                <DropdownMenuItem onClick={() => handleEditFile(file)}><Edit className="mr-2 h-4 w-4" />এডিট</DropdownMenuItem>
-                                <DropdownMenuSub>
-                                    <DropdownMenuSubTrigger>স্ট্যাটাস পরিবর্তন</DropdownMenuSubTrigger>
-                                    <DropdownMenuPortal>
-                                    <DropdownMenuSubContent>
-                                        <DropdownMenuLabel>স্ট্যাটাস</DropdownMenuLabel>
-                                        {file.hasCertificate && (
-                                        <DropdownMenuItem onClick={() => handleStatusChange(file, 'certificate', file.certificate_status === 'প্রিন্ট হয়েছে' ? 'প্রিন্ট হয়নি' : 'প্রিন্ট হয়েছে')}>
-                                            প্রত্যয়নপত্র: {file.certificate_status === 'প্রিন্ট হয়েছে' ? 'প্রিন্ট বাকি' : 'প্রিন্ট হয়েছে'}
-                                        </DropdownMenuItem>
-                                        )}
-                                        {file.hasElectricityBill && (
-                                        <DropdownMenuItem onClick={() => handleStatusChange(file, 'bill', file.bill_status === 'প্রিন্ট হয়েছে' ? 'প্রিন্ট হয়নি' : 'প্রিন্ট হয়েছে')}>
-                                            বিদ্যুৎ বিল: {file.bill_status === 'প্রিন্ট হয়েছে' ? 'প্রিন্ট বাকি' : 'প্রিন্ট হয়েছে'}
-                                        </DropdownMenuItem>
-                                        )}
-                                    </DropdownMenuSubContent>
-                                    </DropdownMenuPortal>
-                                </DropdownMenuSub>
-                                <DropdownMenuSeparator/>
-                                <DropdownMenuItem asChild disabled={!file.hasCertificate}>
-                                    <Link href={`/certificates/print/${file.id}`} target="_blank"><Printer className="mr-2 h-4 w-4" />প্রত্যয়নপত্র প্রিন্ট</Link>
-                                </DropdownMenuItem>
-                                <DropdownMenuItem asChild disabled={!file.hasElectricityBill}>
-                                    <Link href={`/electricity-bills/print/${file.id}`} target="_blank"><Printer className="mr-2 h-4 w-4" />বিদ্যুৎ বিল প্রিন্ট</Link>
-                                </DropdownMenuItem>
-                                <DropdownMenuSeparator/>
-                                <AlertDialog>
-                                    <AlertDialogTrigger asChild><DropdownMenuItem onSelect={(e) => e.preventDefault()} className="text-destructive"><Trash2 className="mr-2 h-4 w-4" />ডিলিট করুন</DropdownMenuItem></AlertDialogTrigger>
-                                    <AlertDialogContent>
-                                        <AlertDialogHeader><AlertDialogTitle>আপনি কি নিশ্চিত?</AlertDialogTitle><AlertDialogDescription>এই কাজটি ফিরিয়ে আনা যাবে না। এটি আপনার ডাটাবেস থেকে ফাইল এবং এর সাথে সম্পর্কিত সকল ডকুমেন্ট স্থায়ীভাবে মুছে ফেলবে।</AlertDialogDescription></AlertDialogHeader>
-                                        <AlertDialogFooter><AlertDialogCancel>বাতিল</AlertDialogCancel>
-                                            <AlertDialogAction className='bg-destructive hover:bg-destructive/90' onClick={() => handleDeleteFile(file.id)} disabled={isDeletePending}>
-                                                {isDeletePending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}ডিলিট
-                                            </AlertDialogAction>
-                                        </AlertDialogFooter>
-                                    </AlertDialogContent>
-                                </AlertDialog>
-                            </DropdownMenuContent>
-                            </DropdownMenu>
-                        </TableCell>
-                        </TableRow>
-                    )})}
-                    </TableBody>
-                </Table>
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead className="w-[40px]"><Checkbox checked={isAllSelected} onCheckedChange={(checked) => handleSelectAll(Boolean(checked))} aria-label="Select all"/></TableHead>
+                    <TableHead>ক্রমিক নং</TableHead>
+                    <TableHead>আবেদনকারীর নাম</TableHead>
+                    <TableHead>জন্ম তারিখ/সাল</TableHead>
+                    <TableHead>ক্লায়েন্টের নাম</TableHead>
+                    <TableHead>ডকুমেন্টস</TableHead>
+                    <TableHead>তৈরির তারিখ</TableHead>
+                    <TableHead><span className="sr-only">Actions</span></TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {files.map((file) => {
+                      const displayName = file.applicantNameBn || file.applicantNameEn;
+                      return (
+                      <TableRow key={file.id} data-state={selectedRows.includes(file.id) ? "selected" : undefined} onMouseEnter={() => {
+                          if (file.hasCertificate) router.prefetch(`/certificates/print/bulk?ids=${file.id}`);
+                          if (file.hasElectricityBill) router.prefetch(`/electricity-bills/print/bulk?ids=${file.id}`);
+                      }}>
+                      <TableCell><Checkbox checked={selectedRows.includes(file.id)} onCheckedChange={(checked) => handleSelectRow(file.id, Boolean(checked))} aria-label={`Select row ${file.id}`}/></TableCell>
+                      <TableCell className="font-mono">{file.serial_no.toString().padStart(4, '0')}</TableCell>
+                      <TableCell className="font-medium">{displayName}</TableCell>
+                      <TableCell>{formatDobForDisplay(file.dob)}</TableCell>
+                      <TableCell>{file.clientName}</TableCell>
+                      <TableCell>
+                          <div className="flex gap-2">
+                              {file.hasCertificate && (
+                                  <Badge variant={file.certificate_status === 'প্রিন্ট হয়েছে' ? 'default' : 'secondary'} className="px-1.5 py-0"><Award className="h-3 w-3 mr-1" />প্রত্যয়ন</Badge>
+                              )}
+                              {file.hasElectricityBill && (
+                                  <Badge variant={file.bill_status === 'প্রিন্ট হয়েছে' ? 'default' : 'secondary'} className="px-1.5 py-0"><Bolt className="h-3 w-3 mr-1" />বিদ্যুৎ বিল</Badge>
+                              )}
+                          </div>
+                      </TableCell>
+                      <TableCell>{file.createdAt ? format(parse(file.createdAt, "yyyy-MM-dd'T'HH:mm:ss.SSSSSSxxx", new Date()), 'dd/MM/yyyy') : ''}</TableCell>
+                      <TableCell>
+                          <DropdownMenu>
+                          <DropdownMenuTrigger asChild><Button aria-haspopup="true" size="icon" variant="ghost"><MoreHorizontal className="h-4 w-4" /><span className="sr-only">Toggle menu</span></Button></DropdownMenuTrigger>
+                          <DropdownMenuContent align="end">
+                              <DropdownMenuItem onClick={() => handleViewDetails(file)}><Eye className="mr-2 h-4 w-4" />দেখুন</DropdownMenuItem>
+                              <DropdownMenuItem onClick={() => handleEditFile(file)}><Edit className="mr-2 h-4 w-4" />এডিট</DropdownMenuItem>
+                              <DropdownMenuSub>
+                                  <DropdownMenuSubTrigger>স্ট্যাটাস পরিবর্তন</DropdownMenuSubTrigger>
+                                  <DropdownMenuPortal>
+                                  <DropdownMenuSubContent>
+                                      <DropdownMenuLabel>স্ট্যাটাস</DropdownMenuLabel>
+                                      {file.hasCertificate && (
+                                      <DropdownMenuItem onClick={() => handleStatusChange(file, 'certificate', file.certificate_status === 'প্রিন্ট হয়েছে' ? 'প্রিন্ট হয়নি' : 'প্রিন্ট হয়েছে')}>
+                                          প্রত্যয়নপত্র: {file.certificate_status === 'প্রিন্ট হয়েছে' ? 'প্রিন্ট বাকি' : 'প্রিন্ট হয়েছে'}
+                                      </DropdownMenuItem>
+                                      )}
+                                      {file.hasElectricityBill && (
+                                      <DropdownMenuItem onClick={() => handleStatusChange(file, 'bill', file.bill_status === 'প্রিন্ট হয়েছে' ? 'প্রিন্ট হয়নি' : 'প্রিন্ট হয়েছে')}>
+                                          বিদ্যুৎ বিল: {file.bill_status === 'প্রিন্ট হয়েছে' ? 'প্রিন্ট বাকি' : 'প্রিন্ট হয়েছে'}
+                                      </DropdownMenuItem>
+                                      )}
+                                  </DropdownMenuSubContent>
+                                  </DropdownMenuPortal>
+                              </DropdownMenuSub>
+                              <DropdownMenuSeparator/>
+                              <DropdownMenuItem asChild disabled={!file.hasCertificate}>
+                                  <Link href={`/certificates/print/${file.id}`} target="_blank"><Printer className="mr-2 h-4 w-4" />প্রত্যয়নপত্র প্রিন্ট</Link>
+                              </DropdownMenuItem>
+                              <DropdownMenuItem asChild disabled={!file.hasElectricityBill}>
+                                  <Link href={`/electricity-bills/print/${file.id}`} target="_blank"><Printer className="mr-2 h-4 w-4" />বিদ্যুৎ বিল প্রিন্ট</Link>
+                              </DropdownMenuItem>
+                              <DropdownMenuSeparator/>
+                              <AlertDialog>
+                                  <AlertDialogTrigger asChild><DropdownMenuItem onSelect={(e) => e.preventDefault()} className="text-destructive"><Trash2 className="mr-2 h-4 w-4" />ডিলিট করুন</DropdownMenuItem></AlertDialogTrigger>
+                                  <AlertDialogContent>
+                                      <AlertDialogHeader><AlertDialogTitle>আপনি কি নিশ্চিত?</AlertDialogTitle><AlertDialogDescription>এই কাজটি ফিরিয়ে আনা যাবে না। এটি আপনার ডাটাবেস থেকে ফাইল এবং এর সাথে সম্পর্কিত সকল ডকুমেন্ট স্থায়ীভাবে মুছে ফেলবে।</AlertDialogDescription></AlertDialogHeader>
+                                      <AlertDialogFooter><AlertDialogCancel>বাতিল</AlertDialogCancel>
+                                          <AlertDialogAction className='bg-destructive hover:bg-destructive/90' onClick={() => handleDeleteFile(file.id)} disabled={isDeletePending}>
+                                              {isDeletePending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}ডিলিট
+                                          </AlertDialogAction>
+                                      </AlertDialogFooter>
+                                  </AlertDialogContent>
+                              </AlertDialog>
+                          </DropdownMenuContent>
+                          </DropdownMenu>
+                      </TableCell>
+                      </TableRow>
+                  )})}
+                </TableBody>
+              </Table>
             </div>
             
             {/* Mobile Card View */}
@@ -1506,16 +1507,25 @@ export default function FilesPageContent({
                             </DropdownMenuItem>
                             <DropdownMenuSeparator/>
                             <AlertDialog>
-                                <AlertDialogTrigger asChild><DropdownMenuItem onSelect={(e) => e.preventDefault()} className="text-destructive"><Trash2 className="mr-2 h-4 w-4" />ডিলিট করুন</DropdownMenuItem></AlertDialogTrigger>
+                                <AlertDialogTrigger asChild>
+                                  <DropdownMenuItem onSelect={(e) => e.preventDefault()} className="text-destructive">
+                                    <Trash2 className="mr-2 h-4 w-4" />ডিলিট করুন
+                                  </DropdownMenuItem>
+                                </AlertDialogTrigger>
                                 <AlertDialogContent>
-                                    <AlertDialogHeader><AlertDialogTitle>আপনি কি নিশ্চিত?</AlertDialogTitle><AlertDialogDescription>এই কাজটি ফিরিয়ে আনা যাবে না। এটি আপনার ডাটাবেস থেকে ফাইল এবং এর সাথে সম্পর্কিত সকল ডকুমেন্ট স্থায়ীভাবে মুছে ফেলবে।</AlertDialogDescription></AlertDialogHeader>
-                                    <AlertDialogFooter><AlertDialogCancel>বাতিল</AlertDialogCancel>
-                                        <AlertDialogAction className='bg-destructive hover:bg-destructive/90' onClick={() => handleDeleteFile(file.id)} disabled={isDeletePending}>
-                                            {isDeletePending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}ডিলিট
-                                        </AlertDialogAction>
+                                    <AlertDialogHeader>
+                                      <AlertDialogTitle>আপনি কি নিশ্চিত?</AlertDialogTitle>
+                                      <AlertDialogDescription>এই কাজটি ফিরিয়ে আনা যাবে না। এটি আপনার ডাটাবেস থেকে ফাইল এবং এর সাথে সম্পর্কিত সকল ডকুমেন্ট স্থায়ীভাবে মুছে ফেলবে।</AlertDialogDescription>
+                                    </AlertDialogHeader>
+                                    <AlertDialogFooter>
+                                      <AlertDialogCancel>বাতিল</AlertDialogCancel>
+                                      <AlertDialogAction className='bg-destructive hover:bg-destructive/90' onClick={() => handleDeleteFile(file.id)} disabled={isDeletePending}>
+                                          {isDeletePending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}ডিলিট
+                                      </AlertDialogAction>
                                     </AlertDialogFooter>
                                 </AlertDialogContent>
-                            </DropdownMenuContent>
+                            </AlertDialog>
+                        </DropdownMenuContent>
                       </DropdownMenu>
                   </CardHeader>
                   <CardContent className="text-sm text-muted-foreground grid grid-cols-2 gap-x-4 gap-y-1 pl-8">
