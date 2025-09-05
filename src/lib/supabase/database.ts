@@ -6,7 +6,7 @@ import { createClient } from '@/lib/supabase/server';
 import { revalidatePath } from 'next/cache';
 import { AppFile, User, Institution, Client, BillAddress, BillTemplate, RechargeEntry, DashboardStatsData, ChartDataPoint } from '../types';
 import { differenceInDays, endOfMonth, getWeekOfMonth, parseISO, startOfYear, endOfYear, add, format } from 'date-fns';
-import { formatInTimeZone } from 'date-fns-tz';
+import { formatInTimeZone, toDate } from 'date-fns-tz';
 import { bn } from 'date-fns/locale';
 
 // Generic function for handling Supabase errors
@@ -131,15 +131,15 @@ export async function getFiles(dailyOnly = false): Promise<AppFile[]> {
         .order('serial_no', { ascending: false });
 
     if (dailyOnly) {
-        // Use a reliable method to get start and end of day in Dhaka time
+        // Vercel runs in UTC, so we must explicitly use a timezone-aware method.
+        const timeZone = 'Asia/Dhaka';
         const now = new Date();
-        const dhakaDateString = now.toLocaleString('en-CA', { timeZone: 'Asia/Dhaka', year: 'numeric', month: '2-digit', day: '2-digit' }); // YYYY-MM-DD format
-        const start = new Date(`${dhakaDateString}T00:00:00.000+06:00`); // Dhaka is UTC+6
-        const end = new Date(`${dhakaDateString}T23:59:59.999+06:00`);
-        
+        const startOfDay = toDate(formatInTimeZone(now, timeZone, 'yyyy-MM-dd') + 'T00:00:00.000', { timeZone });
+        const endOfDay = toDate(formatInTimeZone(now, timeZone, 'yyyy-MM-dd') + 'T23:59:59.999', { timeZone });
+
         query = query
-            .gte('created_at', start.toISOString())
-            .lte('created_at', end.toISOString());
+            .gte('created_at', startOfDay.toISOString())
+            .lte('created_at', endOfDay.toISOString());
     }
 
     const { data, error } = await query;
@@ -682,5 +682,4 @@ export async function getDashboardStats(
     };
   }
 }
-
   
