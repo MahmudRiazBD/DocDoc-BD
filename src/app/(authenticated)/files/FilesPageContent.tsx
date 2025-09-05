@@ -36,7 +36,6 @@ import {
 import { AppFile, Client, RechargeEntry, BillAddress, BillTemplate, Institution } from '@/lib/types';
 import { isValid, parse, format } from 'date-fns';
 import { toDate, formatInTimeZone } from 'date-fns-tz';
-import { dateFnsParseIso } from 'date-fns/fp';
 
 import {
   Dialog,
@@ -101,10 +100,8 @@ const parseDateString = (dateString: string): Date | null => {
     const match = englishDateString.match(dateRegex);
 
     if (match?.groups) {
-        const { day, month, year } = match.groups;
-        // Use UTC to avoid timezone shifts when creating the Date object
-        const isoString = `${year}-${month.padStart(2, '0')}-${day.padStart(2, '0')}T00:00:00.000Z`;
-        const parsedDate = dateFnsParseIso(isoString);
+        // use parse from date-fns
+        const parsedDate = parse(englishDateString, 'dd/MM/yyyy', new Date());
         if (isValid(parsedDate)) {
             return parsedDate;
         }
@@ -1374,7 +1371,7 @@ export default function FilesPageContent({
                                     </DropdownMenuItem>
                                     )}
                                     {file.hasElectricityBill && (
-                                    <DropdownMenuItem onClick={() => handleStatusChange(file, 'bill', file.bill_status === 'প্রিন্ট হয়েছে' ? 'প্রিন্ট হয়নি' : 'প্রিন্ট হয়েছে')}>
+                                    <DropdownMenuItem onClick={() => handleStatusChange(file, 'bill', file.bill_status === 'প্রিন্ট হয়েছে' ? 'প্রিন্ট হয়নি' : 'প্রিন্ট হয়েছে')}>
                                         বিদ্যুৎ বিল: {file.bill_status === 'প্রিন্ট হয়েছে' ? 'প্রিন্ট বাকি' : 'প্রিন্ট হয়েছে'}
                                     </DropdownMenuItem>
                                     )}
@@ -1521,4 +1518,5 @@ export default function FilesPageContent({
 }
   
 
+    
     
