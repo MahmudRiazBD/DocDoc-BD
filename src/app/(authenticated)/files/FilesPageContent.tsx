@@ -34,7 +34,7 @@ import {
   DropdownMenuSubContent,
 } from '@/components/ui/dropdown-menu';
 import { AppFile, Client, RechargeEntry, BillAddress, BillTemplate, Institution } from '@/lib/types';
-import { isValid, parse, format } from 'date-fns';
+import { isValid, parse, format, differenceInYears } from 'date-fns';
 import { toDate, formatInTimeZone } from 'date-fns-tz';
 
 import {
@@ -92,13 +92,9 @@ const toEnglish = (str: string): string => {
 
 const parseDateString = (dateString: string): Date | null => {
     if (!dateString) return null;
-
     const englishDateString = toEnglish(dateString.trim());
-    
-    // Regex to match dd/mm/yyyy, dd-mm-yyyy, or dd.mm.yyyy with flexible day/month digits
     const dateRegex = /^(?<day>\d{1,2})(?<sep>[\/\-.])(?<month>\d{1,2})\k<sep>(?<year>\d{4})$/;
     const match = englishDateString.match(dateRegex);
-
     if (match?.groups) {
         const separator = match.groups.sep;
         const formatString = `dd${separator}MM${separator}yyyy`;
@@ -107,8 +103,7 @@ const parseDateString = (dateString: string): Date | null => {
             return parsedDate;
         }
     }
-
-    return null; // Return null if no format matches
+    return null;
 };
 
 const isEnglish = (str: string) => /^[a-zA-Z\s.-]+$/.test(str);
@@ -121,23 +116,27 @@ const fileSchema = z.object({
   dob: z.string().min(4, 'জন্ম তারিখ বা সাল আবশ্যক'),
   
   createCertificate: z.boolean().default(false),
+  createElectricityBill: z.boolean().default(false),
+
   fatherName: z.string().optional(),
   motherName: z.string().optional(),
 
-  createElectricityBill: z.boolean().default(false),
-  fatherNameEnglish: z.string().optional(),
   applicantNameEnglish: z.string().optional(),
+  fatherNameEnglish: z.string().optional(),
 
 }).superRefine((data, ctx) => {
+    const today = new Date();
     let birthYear: number | null = null;
-    const dob = data.dob;
+    let age: number | null = null;
 
-    if (/^\d{4}$/.test(toEnglish(dob))) {
-        birthYear = parseInt(toEnglish(dob), 10);
+    if (/^\d{4}$/.test(toEnglish(data.dob))) {
+        birthYear = parseInt(toEnglish(data.dob), 10);
+        age = today.getFullYear() - birthYear;
     } else {
-        const parsedDate = parseDateString(dob);
+        const parsedDate = parseDateString(data.dob);
         if (parsedDate && isValid(parsedDate)) {
             birthYear = parsedDate.getFullYear();
+            age = differenceInYears(today, parsedDate);
         }
     }
     
@@ -147,9 +146,9 @@ const fileSchema = z.object({
 
     if (data.createCertificate) {
         if (!isBengali(data.applicantName)) {
-             ctx.addIssue({ code: z.ZodIssueCode.custom, message: 'আবেদনকারীর নাম অবশ্যই বাংলায় লিখতে হবে।', path: ['applicantName'] });
+             ctx.addIssue({ code: z.ZodIssueCode.custom, message: 'প্রত্যয়নপত্রের জন্য আবেদনকারীর নাম অবশ্যই বাংলায় লিখতে হবে।', path: ['applicantName'] });
         }
-        if (!parseDateString(dob)) {
+        if (!parseDateString(data.dob)) {
             ctx.addIssue({ code: z.ZodIssueCode.custom, message: 'প্রত্যয়নপত্রের জন্য সম্পূর্ণ জন্ম তারিখ আবশ্যক (DD/MM/YYYY)', path: ['dob'] });
         }
         if (!data.fatherName) {
@@ -164,14 +163,18 @@ const fileSchema = z.object({
         }
     }
     
-    if (data.createElectricityBill && birthYear) {
-        if (birthYear > 2000) {
+    if (data.createElectricityBill && age !== null) {
+        if (age < 24) {
             if (!data.fatherNameEnglish) {
-                ctx.addIssue({ code: z.ZodIssueCode.custom, message: 'পিতার ইংরেজি নাম আবশ্যক', path: ['fatherNameEnglish'] });
+                ctx.addIssue({ code: z.ZodIssueCode.custom, message: '২৪ বছরের কম বয়সীদের জন্য পিতার ইংরেজি নাম আবশ্যক', path: ['fatherNameEnglish'] });
+            } else if (!isEnglish(data.fatherNameEnglish)) {
+                ctx.addIssue({ code: z.ZodIssueCode.custom, message: 'পিতার নাম অবশ্যই ইংরেজিতে লিখতে হবে।', path: ['fatherNameEnglish'] });
             }
-        } else { // 2000 or earlier
-            if (!isEnglish(data.applicantName) && !data.applicantNameEnglish) {
-                 ctx.addIssue({ code: z.ZodIssueCode.custom, message: 'আবেদনকারীর ইংরেজি নাম আবশ্যক', path: ['applicantNameEnglish'] });
+        } else { // 24 or older
+            if (!data.applicantNameEnglish) {
+                 ctx.addIssue({ code: z.ZodIssueCode.custom, message: '২৪ বছর বা তার বেশি বয়সীদের জন্য আবেদনকারীর ইংরেজি নাম আবশ্যক', path: ['applicantNameEnglish'] });
+            } else if (!isEnglish(data.applicantNameEnglish)) {
+                ctx.addIssue({ code: z.ZodIssueCode.custom, message: 'আবেদনকারীর নাম অবশ্যই ইংরেজিতে লিখতে হবে।', path: ['applicantNameEnglish'] });
             }
         }
     }
@@ -255,33 +258,47 @@ export const FileForm = ({
           createElectricityBill: false,
           fatherName: '',
           motherName: '',
-          fatherNameEnglish: '',
           applicantNameEnglish: '',
+          fatherNameEnglish: '',
         },
   });
 
-  const watchCreateCertificate = form.watch('createCertificate');
-  const watchCreateElectricityBill = form.watch('createElectricityBill');
-  const watchDob = form.watch('dob');
-  const watchApplicantName = form.watch('applicantName');
+  const watchAllFields = form.watch();
   
-  const isCertificateCreationAllowed = useMemo(() => {
-    return isBengali(watchApplicantName) && parseDateString(watchDob) !== null;
-  }, [watchApplicantName, watchDob]);
+  const { applicantName, dob, createCertificate, createElectricityBill } = watchAllFields;
 
-  const getBirthYear = () => {
-    if(!watchDob) return null;
-    const englishDob = toEnglish(watchDob);
-    if (/^\d{4}$/.test(englishDob)) {
-        return parseInt(englishDob, 10);
+  const isCertificateEnabled = useMemo(() => {
+    return isBengali(applicantName) && parseDateString(dob) !== null;
+  }, [applicantName, dob]);
+  
+  const applicantAge = useMemo(() => {
+    if (!dob) return null;
+    const today = new Date();
+    if (/^\d{4}$/.test(toEnglish(dob))) {
+        const birthYear = parseInt(toEnglish(dob), 10);
+        return today.getFullYear() - birthYear;
     }
-    const parsedDob = parseDateString(watchDob);
+    const parsedDob = parseDateString(dob);
     if(parsedDob && isValid(parsedDob)) {
-        return parsedDob.getFullYear();
+        return differenceInYears(today, parsedDob);
     }
     return null;
-  }
-  const birthYear = getBirthYear();
+  }, [dob]);
+
+  const isBillEnabled = applicantAge !== null;
+
+  // Reset checkboxes if conditions are no longer met
+  useEffect(() => {
+    if (!isCertificateEnabled && createCertificate) {
+        form.setValue('createCertificate', false);
+    }
+  }, [isCertificateEnabled, createCertificate, form]);
+
+  useEffect(() => {
+    if (!isBillEnabled && createElectricityBill) {
+        form.setValue('createElectricityBill', false);
+    }
+  }, [isBillEnabled, createElectricityBill, form]);
 
 
   const onSubmit = (values: FileSchema) => {
@@ -293,10 +310,9 @@ export const FileForm = ({
             return;
         }
 
-        const dobString = values.dob;
-        const dobForDb = parseDateString(dobString) 
-            ? formatInTimeZone(parseDateString(dobString)!, 'Asia/Dhaka', 'yyyy-MM-dd')
-            : dobString;
+        const dobForDb = parseDateString(values.dob) 
+            ? formatInTimeZone(parseDateString(values.dob)!, 'Asia/Dhaka', 'yyyy-MM-dd')
+            : values.dob;
 
         const fileData: Partial<AppFile> = { 
             applicantName: values.applicantName,
@@ -310,21 +326,14 @@ export const FileForm = ({
         
         let toastMessages = ['নতুন ফাইলটি তালিকায় যোগ করা হয়েছে।'];
 
-        if(values.createCertificate) {
-             const dobForCert = parseDateString(values.dob);
-             if (!dobForCert) {
-                 toast({ variant: 'destructive', title: 'ত্রুটি', description: 'প্রত্যয়নপত্রের জন্য সঠিক জন্ম তারিখ প্রয়োজন।' });
-                 return;
-             }
-             if (!institutions || institutions.length === 0) {
+        if(values.createCertificate && applicantAge !== null) {
+            if (!institutions || institutions.length === 0) {
                 toast({ variant: 'destructive', title: 'কোনো প্রতিষ্ঠান পাওয়া যায়নি', description: 'প্রত্যয়নপত্র তৈরির আগে অনুগ্রহ করে কমপক্ষে একটি প্রতিষ্ঠান যোগ করুন।' });
                 return;
             }
                 const randomInstitution = institutions[Math.floor(Math.random() * institutions.length)];
                 
-                const age = new Date().getFullYear() - dobForCert.getFullYear();
-                const today = new Date();
-                const academicData = await generateCertificateData({ age: age, date: today.toISOString() });
+                const academicData = await generateCertificateData({ age: applicantAge, date: new Date().toISOString() });
                 
                 fileData.fatherName = values.fatherName;
                 fileData.motherName = values.motherName;
@@ -338,7 +347,7 @@ export const FileForm = ({
                 toastMessages.push('সংশ্লিষ্ট প্রত্যয়নপত্র সফলভাবে তৈরি করা হয়েছে।');
         }
 
-        if(values.createElectricityBill && birthYear) {
+        if(values.createElectricityBill && applicantAge !== null) {
             const activeTemplateIds = billTemplates.filter(t => t.isActive).map(t => t.id);
             const activeAddresses = billAddresses.filter(addr => activeTemplateIds.includes(addr.templateId));
             
@@ -346,11 +355,14 @@ export const FileForm = ({
                   toast({ variant: 'destructive', title: 'কোনো সক্রিয় বিলের ঠিকানা পাওয়া যায়নি', description: 'বিদ্যুৎ বিল তৈরির আগে অনুগ্রহ করে কমপক্ষে একটি সক্রিয় টেমপ্লেটের সাথে ঠিকানা যোগ করুন।' });
                   return;
             } 
+            
                 let billHolderName = '';
-                if(birthYear > 2000) {
+                if(applicantAge < 24) {
                     billHolderName = values.fatherNameEnglish!;
+                    fileData.fatherNameEnglish = values.fatherNameEnglish;
                 } else {
-                    billHolderName = isEnglish(values.applicantName) ? values.applicantName : values.applicantNameEnglish!;
+                    billHolderName = values.applicantNameEnglish!;
+                    fileData.applicantNameEnglish = values.applicantNameEnglish;
                 }
 
                 const randomAddress = activeAddresses[Math.floor(Math.random() * activeAddresses.length)];
@@ -402,7 +414,7 @@ export const FileForm = ({
                     <FormField control={form.control} name="applicantName" render={({ field }) => (
                         <FormItem className="md:col-span-2">
                         <FormLabel>আবেদনকারীর নাম</FormLabel>
-                        <FormControl><Input placeholder="সম্পূর্ণ নাম লিখুন" {...field} /></FormControl>
+                        <FormControl><Input placeholder="বাংলা বা ইংরেজিতে সম্পূর্ণ নাম" {...field} /></FormControl>
                         <FormMessage />
                         </FormItem>
                     )} />
@@ -448,74 +460,74 @@ export const FileForm = ({
                     )} />
                 </div>
                 
-                <div className="space-y-4 pt-4 border-t">
+                <Separator />
+                
+                <div className="space-y-4 pt-2">
+                    <h3 className="text-base font-medium">কোন ডকুমেন্ট তৈরি করতে চান?</h3>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <FormField control={form.control} name="createCertificate" render={({ field }) => (
-                            <FormItem className="flex flex-row items-start space-x-3 space-y-0 rounded-md border p-4">
-                            <FormControl><Checkbox checked={field.value} onCheckedChange={field.onChange} disabled={!isCertificateCreationAllowed} /></FormControl>
+                         <FormField control={form.control} name="createCertificate" render={({ field }) => (
+                            <FormItem className="flex flex-row items-start space-x-3 space-y-0 rounded-md border p-4 data-[disabled=true]:opacity-50" data-disabled={!isCertificateEnabled}>
+                            <FormControl><Checkbox checked={field.value} onCheckedChange={field.onChange} disabled={!isCertificateEnabled} /></FormControl>
                             <div className="space-y-1 leading-none">
-                                <FormLabel>প্রত্যয়নপত্র তৈরি করুন</FormLabel>
-                                <FormDescription className={cn(!isCertificateCreationAllowed && "text-destructive/80")}>
+                                <FormLabel className={cn(!isCertificateEnabled && "text-muted-foreground")}>প্রত্যয়নপত্র তৈরি করুন</FormLabel>
+                                <FormDescription className={cn(isCertificateEnabled ? 'hidden' : 'block')}>
                                     নাম বাংলায় এবং জন্ম তারিখ সম্পূর্ণ দিন।
                                 </FormDescription>
                             </div>
                             </FormItem>
                         )} />
-                        <FormField control={form.control} name="createElectricityBill" render={({ field }) => (
-                            <FormItem className="flex flex-row items-start space-x-3 space-y-0 rounded-md border p-4">
-                            <FormControl><Checkbox checked={field.value} onCheckedChange={field.onChange} disabled={!watchDob}/></FormControl>
+                         <FormField control={form.control} name="createElectricityBill" render={({ field }) => (
+                            <FormItem className="flex flex-row items-start space-x-3 space-y-0 rounded-md border p-4 data-[disabled=true]:opacity-50" data-disabled={!isBillEnabled}>
+                            <FormControl><Checkbox checked={field.value} onCheckedChange={field.onChange} disabled={!isBillEnabled} /></FormControl>
                             <div className="space-y-1 leading-none">
-                                <FormLabel>বিদ্যুৎ বিল তৈরি করুন</FormLabel>
-                                {!watchDob && <p className="text-xs text-muted-foreground">জন্ম তারিখ দিন।</p>}
+                                <FormLabel className={cn(!isBillEnabled && "text-muted-foreground")}>বিদ্যুৎ বিল তৈরি করুন</FormLabel>
+                                <FormDescription className={cn(isBillEnabled ? 'hidden' : 'block')}>
+                                    জন্ম তারিখ বা সাল দিন।
+                                </FormDescription>
                             </div>
                             </FormItem>
                         )} />
                     </div>
+
+                    {createCertificate && (
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 p-4 border rounded-md">
+                            <h3 className="md:col-span-2 text-sm font-medium text-muted-foreground -mb-2">প্রত্যয়নপত্রের জন্য তথ্য (বাংলা)</h3>
+                            <FormField control={form.control} name="fatherName" render={({ field }) => (
+                                <FormItem>
+                                <FormLabel>পিতার নাম</FormLabel>
+                                <FormControl><Input placeholder="পিতার সম্পূর্ণ নাম" {...field} /></FormControl>
+                                <FormMessage />
+                                </FormItem>
+                            )} />
+                            <FormField control={form.control} name="motherName" render={({ field }) => (
+                                <FormItem>
+                                <FormLabel>মাতার নাম</FormLabel>
+                                <FormControl><Input placeholder="মাতার সম্পূর্ণ নাম" {...field} /></FormControl>
+                                <FormMessage />
+                                </FormItem>
+                            )} />
+                        </div>
+                    )}
                     
-                    {(watchCreateCertificate || watchCreateElectricityBill) && (
-                      <>
-                        {watchCreateCertificate && (
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 p-4 border rounded-md">
-                                <h3 className="md:col-span-2 text-sm font-medium text-muted-foreground -mb-2">প্রত্যয়নপত্রের জন্য তথ্য</h3>
-                                <FormField control={form.control} name="fatherName" render={({ field }) => (
-                                    <FormItem>
-                                    <FormLabel>পিতার নাম (বাংলা)</FormLabel>
-                                    <FormControl><Input placeholder="পিতার সম্পূর্ণ নাম" {...field} /></FormControl>
+                    {createElectricityBill && applicantAge !== null && (
+                        <div className="p-4 border rounded-md space-y-4">
+                            <h3 className="text-sm font-medium text-muted-foreground">বিদ্যুৎ বিলের জন্য তথ্য (ইংরেজি)</h3>
+                            {applicantAge < 24 ? (
+                                <FormField control={form.control} name="fatherNameEnglish" render={({ field }) => (
+                                    <FormItem><FormLabel>পিতার নাম</FormLabel>
+                                    <FormControl><Input placeholder="Father's Full Name" {...field} /></FormControl>
                                     <FormMessage />
                                     </FormItem>
                                 )} />
-                                <FormField control={form.control} name="motherName" render={({ field }) => (
-                                    <FormItem>
-                                    <FormLabel>মাতার নাম (বাংলা)</FormLabel>
-                                    <FormControl><Input placeholder="মাতার সম্পূর্ণ নাম" {...field} /></FormControl>
+                            ) : (
+                                <FormField control={form.control} name="applicantNameEnglish" render={({ field }) => (
+                                    <FormItem><FormLabel>আবেদনকারীর নাম</FormLabel>
+                                    <FormControl><Input placeholder="Applicant's Full Name" {...field} /></FormControl>
                                     <FormMessage />
                                     </FormItem>
                                 )} />
-                            </div>
-                        )}
-                        {watchCreateElectricityBill && birthYear && (
-                            <div className="p-4 border rounded-md">
-                                <h3 className="text-sm font-medium text-muted-foreground mb-4">বিদ্যুৎ বিলের জন্য তথ্য</h3>
-                                {birthYear > 2000 ? (
-                                    <FormField control={form.control} name="fatherNameEnglish" render={({ field }) => (
-                                        <FormItem><FormLabel>পিতার নাম (ইংরেজি)</FormLabel>
-                                        <FormControl><Input placeholder="Father's Full Name" {...field} /></FormControl>
-                                        <FormMessage />
-                                        </FormItem>
-                                    )} />
-                                ) : (
-                                    !isEnglish(watchApplicantName) && (
-                                        <FormField control={form.control} name="applicantNameEnglish" render={({ field }) => (
-                                            <FormItem><FormLabel>আবেদনকারীর নাম (ইংরেজি)</FormLabel>
-                                            <FormControl><Input placeholder="Applicant's Full Name" {...field} /></FormControl>
-                                            <FormMessage />
-                                            </FormItem>
-                                        )} />
-                                    )
-                                )}
-                            </div>
-                        )}
-                      </>
+                            )}
+                        </div>
                     )}
                 </div>
             </div>

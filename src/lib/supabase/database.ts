@@ -5,7 +5,7 @@
 import { createClient } from '@/lib/supabase/server';
 import { revalidatePath } from 'next/cache';
 import { AppFile, User, Institution, Client, BillAddress, BillTemplate, RechargeEntry, DashboardStatsData, ChartDataPoint } from '../types';
-import { differenceInDays, endOfMonth, getWeekOfMonth, parseISO, startOfYear, endOfYear, add, format, startOfDay, endOfDay, startOfWeek, endOfWeek, startOfMonth } from 'date-fns';
+import { differenceInDays, endOfMonth, getWeekOfMonth, parse, startOfYear, endOfYear, add, startOfDay, endOfDay, startOfWeek, endOfWeek, startOfMonth } from 'date-fns';
 import { formatInTimeZone, toDate } from 'date-fns-tz';
 import { bn } from 'date-fns/locale';
 
@@ -43,6 +43,8 @@ export async function addFile(file: Partial<AppFile>): Promise<AppFile> {
     // Bill fields
     bill_template_id: file.bill_template_id,
     bill_holder_name: file.bill_holder_name,
+    applicant_name_english: file.applicantNameEnglish,
+    father_name_english: file.fatherNameEnglish,
     bill_customer_no: file.bill_customer_no,
     bill_sanc_load: file.bill_sanc_load,
     bill_book_no: file.bill_book_no,
@@ -107,6 +109,8 @@ const mapFileDataToAppFile = (file: any): AppFile => ({
     bill_template_name: file.bill_templates?.name,
     bill_template_logo_url: file.bill_templates?.logo_url,
     bill_holder_name: file.bill_holder_name,
+    applicantNameEnglish: file.applicant_name_english,
+    fatherNameEnglish: file.father_name_english,
     bill_customer_no: file.bill_customer_no,
     bill_sanc_load: file.bill_sanc_load,
     bill_book_no: file.bill_book_no,
@@ -146,21 +150,21 @@ const applyTimeFilters = (query: any, options: { filter?: string, date?: string,
             break;
         case 'specific_date':
             if (date) {
-                const d = parseISO(date);
+                const d = parse(date, 'yyyy-MM-dd', new Date());
                 startDate = startOfDay(d);
                 endDate = endOfDay(d);
             }
             break;
         case 'specific_month':
              if(month) {
-                const m = parseISO(month);
+                const m = parse(month, 'yyyy-MM', new Date());
                 startDate = startOfMonth(m);
                 endDate = endOfMonth(m);
             }
             break;
         case 'custom':
-            if (from) startDate = startOfDay(parseISO(from));
-            if (to) endDate = endOfDay(parseISO(to));
+            if (from) startDate = startOfDay(parse(from, 'yyyy-MM-dd', new Date()));
+            if (to) endDate = endOfDay(parse(to, 'yyyy-MM-dd', new Date()));
             break;
     }
 
@@ -704,7 +708,7 @@ export async function getDashboardStats(
         }
         
         filesData?.forEach(d => {
-            const label = formatInTimeZone(parseISO(d.created_at), 'Asia/Dhaka', 'MMM d', { locale: bn });
+            const label = formatInTimeZone(parse(d.created_at, "yyyy-MM-dd'T'HH:mm:ss.SSSSSSxxx", new Date()), 'Asia/Dhaka', 'MMM d', { locale: bn });
             const entry = dailyMap.get(label);
             if(entry) {
                 entry.files++;
@@ -721,7 +725,7 @@ export async function getDashboardStats(
       }
 
       filesData?.forEach(d => {
-        const date = parseISO(d.created_at);
+        const date = parse(d.created_at, "yyyy-MM-dd'T'HH:mm:ss.SSSSSSxxx", new Date());
         const weekOfMonth = getWeekOfMonth(date, { weekStartsOn: 1 });
         const key = `সপ্তাহ ${weekOfMonth}`;
         const entry = weeklyMap.get(key);
@@ -743,7 +747,7 @@ export async function getDashboardStats(
         }
         
         filesData?.forEach(d => {
-            const label = formatInTimeZone(parseISO(d.created_at), 'Asia/Dhaka', 'MMM', { locale: bn });
+            const label = formatInTimeZone(parse(d.created_at, "yyyy-MM-dd'T'HH:mm:ss.SSSSSSxxx", new Date()), 'Asia/Dhaka', 'MMM', { locale: bn });
             const entry = monthlyMap.get(label);
             if(entry) {
                 entry.files++;

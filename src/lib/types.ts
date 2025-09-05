@@ -20,8 +20,8 @@ export interface AppFile {
   // Certificate-related fields
   institutionId?: string | null;
   institutionName?: string; // Denormalized from institutions table
-  fatherName?: string | null;
-  motherName?: string | null;
+  fatherName?: string | null; // Bengali
+  motherName?: string | null; // Bengali
   class?: string | null;
   roll?: number | null;
   certificateDate?: string | null; // YYYY-MM-DD
@@ -33,6 +33,8 @@ export interface AppFile {
   bill_template_name?: string; // Denormalized
   bill_template_logo_url?: string; // Denormalized
   bill_holder_name?: string | null;
+  applicantNameEnglish?: string | null;
+  fatherNameEnglish?: string | null;
   bill_customer_no?: string | null;
   bill_sanc_load?: string | null;
   bill_book_no?: string | null;
