@@ -12,7 +12,7 @@ export const DescoBill = ({ file }: { file: AppFile }) => {
   const startDate = subYears(endDate, 1);
 
   return (
-    <div id="printable-area-desco" className="bg-white shadow-lg a4-page-portrait font-sans text-xs relative">
+    <div id="printable-area-desco" className="bg-white shadow-lg a4-page-portrait font-sans text-xs relative print:text-black">
       {/* Header */}
       <header className="px-10 pt-8 pb-4 flex items-center gap-4">
           {file.bill_template_logo_url && (
@@ -42,31 +42,31 @@ export const DescoBill = ({ file }: { file: AppFile }) => {
           <table className="w-full border-collapse">
               <thead>
                   <tr className="bg-gray-100">
-                      <th className="p-1 border text-left">SL</th>
-                      <th className="p-1 border text-left">Order No</th>
-                      <th className="p-1 border text-left">Meter No</th>
-                      <th className="p-1 border text-left">Date</th>
-                      <th className="p-1 border text-right">Total Amount</th>
-                      <th className="p-1 border text-right">Energy Amount</th>
-                      <th className="p-1 border text-right">VAT</th>
-                      <th className="p-1 border text-right">Rebate</th>
-                      <th className="p-1 border text-right">Demand Charge</th>
-                      <th className="p-1 border text-right">Meter Rent 1P</th>
+                      <th className="p-1 border border-gray-300 text-left">SL</th>
+                      <th className="p-1 border border-gray-300 text-left">Order No</th>
+                      <th className="p-1 border border-gray-300 text-left">Meter No</th>
+                      <th className="p-1 border border-gray-300 text-left">Date</th>
+                      <th className="p-1 border border-gray-300 text-right">Total Amount</th>
+                      <th className="p-1 border border-gray-300 text-right">Energy Amount</th>
+                      <th className="p-1 border border-gray-300 text-right">VAT</th>
+                      <th className="p-1 border border-gray-300 text-right">Rebate</th>
+                      <th className="p-1 border border-gray-300 text-right">Demand Charge</th>
+                      <th className="p-1 border border-gray-300 text-right">Meter Rent 1P</th>
                   </tr>
               </thead>
               <tbody>
                   {file.bill_recharge_history.map((entry, index) => (
                       <tr key={index} className="odd:bg-white even:bg-gray-50">
-                          <td className="p-1 border">{index + 1}</td>
-                          <td className="p-1 border">{entry.orderNo}</td>
-                          <td className="p-1 border">{file.bill_meter_no}</td>
-                          <td className="p-1 border">{formatInTimeZone(toDate(entry.date), 'Asia/Dhaka', 'yyyy-MM-dd')}</td>
-                          <td className="p-1 border text-right">{entry.totalAmount.toFixed(2)}</td>
-                          <td className="p-1 border text-right">{entry.energyAmount.toFixed(2)}</td>
-                          <td className="p-1 border text-right">{entry.vat.toFixed(2)}</td>
-                          <td className="p-1 border text-right">{entry.rebate.toFixed(2)}</td>
-                          <td className="p-1 border text-right">{entry.demandCharge.toFixed(2)}</td>
-                          <td className="p-1 border text-right">{entry.meterRent.toFixed(2)}</td>
+                          <td className="p-1 border border-gray-300">{index + 1}</td>
+                          <td className="p-1 border border-gray-300">{entry.orderNo}</td>
+                          <td className="p-1 border border-gray-300">{file.bill_meter_no}</td>
+                          <td className="p-1 border border-gray-300">{formatInTimeZone(toDate(entry.date), 'Asia/Dhaka', 'yyyy-MM-dd')}</td>
+                          <td className="p-1 border border-gray-300 text-right">{entry.totalAmount.toFixed(2)}</td>
+                          <td className="p-1 border border-gray-300 text-right">{entry.energyAmount.toFixed(2)}</td>
+                          <td className="p-1 border border-gray-300 text-right">{entry.vat.toFixed(2)}</td>
+                          <td className="p-1 border border-gray-300 text-right">{entry.rebate.toFixed(2)}</td>
+                          <td className="p-1 border border-gray-300 text-right">{entry.demandCharge.toFixed(2)}</td>
+                          <td className="p-1 border border-gray-300 text-right">{entry.meterRent.toFixed(2)}</td>
                       </tr>
                   ))}
               </tbody>

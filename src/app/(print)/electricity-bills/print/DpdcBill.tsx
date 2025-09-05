@@ -13,7 +13,7 @@ export const DpdcBill = ({ file }: { file: AppFile }) => {
   return (
     <div
       id="printable-area-dpdc"
-      className="bg-white shadow-lg a4-page-portrait font-sans text-xs leading-tight text-black p-10 flex flex-col"
+      className="bg-white shadow-lg a4-page-portrait font-sans text-xs leading-tight text-black p-10 flex flex-col print:text-black"
     >
         {/* Top Section: Customer Info */}
         <div>
@@ -38,7 +38,7 @@ export const DpdcBill = ({ file }: { file: AppFile }) => {
             <p className="text-sm">for period of {formatInTimeZone(startDate, 'Asia/Dhaka', 'dd-MM-yyyy')} to {formatInTimeZone(endDate, 'Asia/Dhaka', 'dd-MM-yyyy')}</p>
           </section>
 
-          <section className="grid grid-cols-2 gap-x-6 text-xs mb-2 border p-1.5">
+          <section className="grid grid-cols-2 gap-x-6 text-xs mb-2 border border-gray-300 p-1.5">
             <div className='space-y-0.5'>
               <div className='flex'><p className='w-28'>NOCS</p><p>: DANIA</p></div>
               <div className='flex'><p className='w-28'>Customer No</p><p>: {file.bill_customer_no}</p></div>
@@ -57,7 +57,7 @@ export const DpdcBill = ({ file }: { file: AppFile }) => {
         </div>
 
         {/* Bottom Section: Recharge History Table */}
-        <div className="flex-grow relative border p-2 flex flex-col">
+        <div className="flex-grow relative border border-gray-300 p-2 flex flex-col">
             {/* Watermark is positioned relative to this container */}
             {file.bill_template_logo_url && (
                 <div className="absolute inset-0 flex items-center justify-center z-0">
@@ -77,35 +77,35 @@ export const DpdcBill = ({ file }: { file: AppFile }) => {
                 <table className="w-full border-collapse">
                 <thead className='text-xs'>
                     <tr className="bg-transparent">
-                    <th className="p-0.5 text-center border">SI.</th>
-                    <th className="p-0.5 text-center border">Recharge Date</th>
-                    <th className="p-0.5 text-center border">Recharge Amount</th>
-                    <th className="p-0.5 text-center border">Service Charge</th>
-                    <th className="p-0.5 text-center border">Demand Charge</th>
-                    <th className="p-0.5 text-center border">Meter Rent</th>
-                    <th className="p-0.5 text-center border">Arear Amt.</th>
-                    <th className="p-0.5 text-center border">Rebate</th>
-                    <th className="p-0.5 text-center border">Other Charge</th>
-                    <th className="p-0.5 text-center border">VAT</th>
-                    <th className="p-0.5 text-center border">Energy Amt.</th>
-                    <th className="p-0.5 text-center border">Recharge By</th>
+                    <th className="p-0.5 text-center border border-gray-300">SI.</th>
+                    <th className="p-0.5 text-center border border-gray-300">Recharge Date</th>
+                    <th className="p-0.5 text-center border border-gray-300">Recharge Amount</th>
+                    <th className="p-0.5 text-center border border-gray-300">Service Charge</th>
+                    <th className="p-0.5 text-center border border-gray-300">Demand Charge</th>
+                    <th className="p-0.5 text-center border border-gray-300">Meter Rent</th>
+                    <th className="p-0.5 text-center border border-gray-300">Arear Amt.</th>
+                    <th className="p-0.5 text-center border border-gray-300">Rebate</th>
+                    <th className="p-0.5 text-center border border-gray-300">Other Charge</th>
+                    <th className="p-0.5 text-center border border-gray-300">VAT</th>
+                    <th className="p-0.5 text-center border border-gray-300">Energy Amt.</th>
+                    <th className="p-0.5 text-center border border-gray-300">Recharge By</th>
                     </tr>
                 </thead>
                 <tbody>
                     {file.bill_recharge_history.map((entry, index) => (
                     <tr key={index} className="bg-transparent">
-                        <td className="p-0.5 text-center border">{index + 1}</td>
-                        <td className="p-0.5 text-center border">{formatInTimeZone(toDate(entry.date), 'Asia/Dhaka', 'dd-MMM-yy').toUpperCase()}</td>
-                        <td className="p-0.5 text-center border">{entry.totalAmount.toFixed(2)}</td>
-                        <td className="p-0.5 text-center border">{(entry.serviceCharge || 0).toFixed(2)}</td>
-                        <td className="p-0.5 text-center border">{entry.demandCharge.toFixed(2)}</td>
-                        <td className="p-0.5 text-center border">{entry.meterRent.toFixed(2)}</td>
-                        <td className="p-0.5 text-center border">{(entry.arearAmt || 0).toFixed(2)}</td>
-                        <td className="p-0.5 text-center border">{entry.rebate.toFixed(2)}</td>
-                        <td className="p-0.5 text-center border">{(entry.otherCharge || 0).toFixed(2)}</td>
-                        <td className="p-0.5 text-center border">{entry.vat.toFixed(2)}</td>
-                        <td className="p-0.5 text-center border">{entry.energyAmount.toFixed(2)}</td>
-                        <td className="p-0.5 text-center border">{entry.rechargeBy}</td>
+                        <td className="p-0.5 text-center border border-gray-300">{index + 1}</td>
+                        <td className="p-0.5 text-center border border-gray-300">{formatInTimeZone(toDate(entry.date), 'Asia/Dhaka', 'dd-MMM-yy').toUpperCase()}</td>
+                        <td className="p-0.5 text-center border border-gray-300">{entry.totalAmount.toFixed(2)}</td>
+                        <td className="p-0.5 text-center border border-gray-300">{(entry.serviceCharge || 0).toFixed(2)}</td>
+                        <td className="p-0.5 text-center border border-gray-300">{entry.demandCharge.toFixed(2)}</td>
+                        <td className="p-0.5 text-center border border-gray-300">{entry.meterRent.toFixed(2)}</td>
+                        <td className="p-0.5 text-center border border-gray-300">{(entry.arearAmt || 0).toFixed(2)}</td>
+                        <td className="p-0.5 text-center border border-gray-300">{entry.rebate.toFixed(2)}</td>
+                        <td className="p-0.5 text-center border border-gray-300">{(entry.otherCharge || 0).toFixed(2)}</td>
+                        <td className="p-0.5 text-center border border-gray-300">{entry.vat.toFixed(2)}</td>
+                        <td className="p-0.5 text-center border border-gray-300">{entry.energyAmount.toFixed(2)}</td>
+                        <td className="p-0.5 text-center border border-gray-300">{entry.rechargeBy}</td>
                     </tr>
                     ))}
                 </tbody>

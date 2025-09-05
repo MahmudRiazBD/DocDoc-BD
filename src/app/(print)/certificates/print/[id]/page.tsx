@@ -83,7 +83,7 @@ export const PrintableCertificateBody = ({ file, institution }: { file: AppFile;
     const bengaliFormattedCertificateDate = toBengaliNumber(formatInTimeZone(certificateDate, BD_TIME_ZONE, 'dd/MM/yyyy'));
     
     return (
-        <div id="printable-area" className="bg-white shadow-lg p-10 print:shadow-none a4-page font-serif-bengali">
+        <div id="printable-area" className="bg-white shadow-lg p-10 print:shadow-none a4-page font-serif-bengali print:text-black">
             {/* Header Section */}
             <header className="flex items-start justify-between pb-4">
                 <div className="w-32 flex-shrink-0">
