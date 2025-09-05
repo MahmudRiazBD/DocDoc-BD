@@ -267,7 +267,7 @@ export default function ClientsTable({ initialClients }: { initialClients: Clien
                     <PopoverTrigger asChild>
                     <Button variant="outline" className="w-full md:w-[280px] justify-start text-left font-normal">
                         <CalendarIcon className="mr-2 h-4 w-4" />
-                        {specificDate ? formatInTimeZone(specificDate, 'Asia/Dhaka', 'PPP') : <span>একটি তারিখ বাছাই করুন</span>}
+                        {specificDate ? formatInTimeZone(specificDate, 'Asia/Dhaka', 'dd/MM/yyyy') : <span>একটি তারিখ বাছাই করুন</span>}
                     </Button>
                     </PopoverTrigger>
                     <PopoverContent className="w-auto p-0">
@@ -281,7 +281,7 @@ export default function ClientsTable({ initialClients }: { initialClients: Clien
                     <PopoverTrigger asChild>
                     <Button variant="outline" className={cn("w-full md:w-[300px] justify-start text-left font-normal", !dateRange && "text-muted-foreground")}>
                         <CalendarIcon className="mr-2 h-4 w-4" />
-                        {dateRange?.from ? (dateRange.to ? <>{formatInTimeZone(dateRange.from, 'Asia/Dhaka', "LLL dd, y")} - {formatInTimeZone(dateRange.to, 'Asia/Dhaka', "LLL dd, y")}</> : formatInTimeZone(dateRange.from, 'Asia/Dhaka', "LLL dd, y")) : <span>একটি তারিখ পরিসর বাছাই করুন</span>}
+                        {dateRange?.from ? (dateRange.to ? <>{formatInTimeZone(dateRange.from, 'Asia/Dhaka', "dd/MM/yy")} - {formatInTimeZone(dateRange.to, 'Asia/Dhaka', "dd/MM/yy")}</> : formatInTimeZone(dateRange.from, 'Asia/Dhaka', "dd/MM/yyyy")) : <span>একটি তারিখ পরিসর বাছাই করুন</span>}
                     </Button>
                     </PopoverTrigger>
                     <PopoverContent className="w-auto p-0" align="start">

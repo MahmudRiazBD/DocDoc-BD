@@ -290,7 +290,7 @@ export default function DashboardPage() {
               >
                 <CalendarIcon className="mr-2 h-4 w-4" />
                 {specificDate ? (
-                  format(specificDate, 'PPP')
+                  format(specificDate, 'dd/MM/yyyy')
                 ) : (
                   <span>একটি তারিখ বাছাই করুন</span>
                 )}
@@ -321,11 +321,11 @@ export default function DashboardPage() {
                 {dateRange?.from ? (
                   dateRange.to ? (
                     <>
-                      {format(dateRange.from, 'LLL dd, y')} -{' '}
-                      {format(dateRange.to, 'LLL dd, y')}
+                      {format(dateRange.from, 'dd/MM/yy')} -{' '}
+                      {format(dateRange.to, 'dd/MM/yy')}
                     </>
                   ) : (
-                    format(dateRange.from, 'LLL dd, y')
+                    format(dateRange.from, 'dd/MM/yyyy')
                   )
                 ) : (
                   <span>একটি তারিখ পরিসর বাছাই করুন</span>

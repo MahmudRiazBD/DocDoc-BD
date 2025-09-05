@@ -1,4 +1,3 @@
-
 'use client';
 
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -101,11 +100,20 @@ export default function EditCertificatePage() {
             ]);
 
             if (fileData) {
+                let formattedDob = fileData.dob;
+                try {
+                  const parsedDate = parse(fileData.dob, 'yyyy-MM-dd', new Date());
+                  if(isValid(parsedDate)) {
+                    formattedDob = formatDate(parsedDate, 'dd/MM/yyyy');
+                  }
+                } catch (e) {
+                    // keep original if parsing fails
+                }
                 form.reset({
                     name: fileData.applicantName,
                     fatherName: fileData.fatherName ?? '',
                     motherName: fileData.motherName ?? '',
-                    dob: fileData.dob,
+                    dob: formattedDob,
                     class: fileData.class ?? '',
                     roll: fileData.roll ?? undefined,
                     certificateDate: fileData.certificateDate ?? '',
@@ -174,11 +182,19 @@ export default function EditCertificatePage() {
   async function onSubmit(values: FormSchemaType) {
     setIsSubmitting(true);
     try {
+       const parsedDob = parseDateString(values.dob);
+       if (!parsedDob) {
+           toast({ variant: 'destructive', title: 'ত্রুটি', description: 'সঠিক ফরম্যাটে জন্ম তারিখ দিন।'});
+           setIsSubmitting(false);
+           return;
+       }
+       const dobForDb = formatDate(parsedDob, 'yyyy-MM-dd');
+
       const fileUpdateData: Partial<AppFile> = {
         applicantName: values.name,
         fatherName: values.fatherName,
         motherName: values.motherName,
-        dob: values.dob,
+        dob: dobForDb,
         class: values.class,
         roll: values.roll,
         certificateDate: values.certificateDate,
@@ -285,7 +301,7 @@ export default function EditCertificatePage() {
                             )}
                           >
                             {selectedDateForPicker ? (
-                              formatDate(selectedDateForPicker, 'PPP')
+                              formatDate(selectedDateForPicker, 'dd/MM/yyyy')
                             ) : (
                               <span>একটি তারিখ বাছাই করুন</span>
                             )}
@@ -423,5 +439,3 @@ export default function EditCertificatePage() {
     </Card>
   );
 }
-
-  
