@@ -48,6 +48,7 @@ import { Loader2 } from 'lucide-react';
 import { UpdateProfileForm } from './users/UpdateProfileForm';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { purgeAllCache } from '@/app/actions/cache-actions';
+import { ThemeSwitcher } from './ThemeSwitcher';
 
 
 const mainNavItems = [
@@ -147,7 +148,7 @@ export default function AuthenticatedLayout({
   const handlePurgeCache = () => {
     startPurgeTransition(async () => {
       const result = await purgeAllCache();
-      if (result.success) {
+      if (result?.success) {
         toast({
           title: 'ক্যাশ পরিষ্কার হয়েছে',
           description: 'অ্যাপ্লিকেশনের সমস্ত ক্যাশ সফলভাবে পরিষ্কার করা হয়েছে।',
@@ -233,11 +234,12 @@ export default function AuthenticatedLayout({
         </Button>
       </SheetTrigger>
       <SheetContent side="left" className="flex flex-col">
-        <SheetHeader className="flex flex-row items-center gap-2 text-lg font-semibold mb-4">
-            <Link href="/dashboard" className="flex items-center gap-2 font-semibold text-sidebar-foreground">
-                <PawPrint className="h-6 w-6 text-primary" />
-                 <SheetTitle className="sr-only">ডকডক বিডি</SheetTitle>
-            </Link>
+        <SheetHeader>
+          <SheetTitle className="sr-only">ডকডক বিডি</SheetTitle>
+          <Link href="/dashboard" className="flex items-center gap-2 font-semibold text-sidebar-foreground mb-4">
+              <PawPrint className="h-6 w-6 text-primary" />
+              <span>ডকডক বিডি</span>
+          </Link>
         </SheetHeader>
         <SideNav isMobile />
          <div className="mt-auto p-4">
@@ -290,6 +292,7 @@ export default function AuthenticatedLayout({
         <header className="flex h-14 shrink-0 items-center gap-4 border-b bg-muted/40 px-4 lg:h-[60px] lg:px-6">
           <MobileNav />
           <div className="w-full flex-1" />
+           <ThemeSwitcher />
            <Dialog open={isProfileDialogOpen} onOpenChange={setProfileDialogOpen}>
             <DropdownMenu>
                 <DropdownMenuTrigger asChild>
@@ -352,5 +355,3 @@ export default function AuthenticatedLayout({
     </div>
   );
 }
-
-    

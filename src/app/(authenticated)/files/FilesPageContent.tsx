@@ -34,8 +34,8 @@ import {
   DropdownMenuSubContent,
 } from '@/components/ui/dropdown-menu';
 import { AppFile, Client, RechargeEntry, BillAddress, BillTemplate, Institution } from '@/lib/types';
-import { isValid, differenceInYears, startOfDay, endOfDay, startOfWeek, endOfWeek, startOfMonth, endOfMonth, startOfYear, endOfYear, parseISO as dateFnsParseIso } from 'date-fns';
-import { toDate, formatInTimeZone, parse } from 'date-fns-tz';
+import { isValid, differenceInYears, startOfDay, endOfDay, startOfWeek, endOfWeek, startOfMonth, endOfMonth, startOfYear, endOfYear, parseISO as dateFnsParseIso, parse } from 'date-fns';
+import { toDate, formatInTimeZone } from 'date-fns-tz';
 
 import {
   Dialog,
@@ -1486,5 +1486,4 @@ export default function FilesPageContent({
     </Card>
   );
 }
-
   
