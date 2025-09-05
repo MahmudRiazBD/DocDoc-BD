@@ -23,7 +23,7 @@ function handleError(error: any, context: string) {
 export async function addFile(file: Partial<AppFile>): Promise<AppFile> {
   const supabaseAdmin = createClient();
   const insertData = {
-    applicant_name_bn: file.applicantNameBn || null,
+    applicant_name_bn: file.applicantNameBn || file.applicantNameEn,
     applicant_name_en: file.applicantNameEn || null,
     dob: file.dob,
     client_id: file.clientId,
@@ -438,7 +438,7 @@ export async function addInstitution(institution: Omit<Institution, 'id' | 'crea
         createdAt: data.created_at,
         logoUrl: data.logo_url,
         signatureUrl1: data.signatureUrl1,
-        signatureUrl2: data.signatureUrl2,
+        signatureUrl2: data.signature_url_2,
         collegeCode: data.college_code,
         schoolCode: data.school_code,
         certificateText: data.certificate_text,
