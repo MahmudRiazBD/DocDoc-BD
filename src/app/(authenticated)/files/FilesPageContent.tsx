@@ -34,7 +34,7 @@ import {
   DropdownMenuSubContent,
 } from '@/components/ui/dropdown-menu';
 import { AppFile, Client, RechargeEntry, BillAddress, BillTemplate, Institution } from '@/lib/types';
-import { isValid, differenceInYears, startOfDay, endOfDay, startOfWeek, endOfWeek, startOfMonth, endOfMonth, startOfYear, endOfYear, parseISO as dateFnsParseIso, parse } from 'date-fns';
+import { isValid, differenceInYears, startOfDay, endOfDay, startOfWeek, endOfWeek, startOfMonth, endOfMonth, startOfYear, endOfYear, parseISO as dateFnsParseIso, parse, format } from 'date-fns';
 import { toDate, formatInTimeZone } from 'date-fns-tz';
 
 import {
@@ -1321,16 +1321,10 @@ export default function FilesPageContent({
                     <TableCell>
                         <div className="flex gap-2">
                              {file.hasCertificate && (
-                                <Badge variant={file.certificate_status === 'প্রিন্ট হয়েছে' ? 'default' : 'secondary'}>
-                                    <Award className="mr-1.5 h-3.5 w-3.5" />
-                                    প্রত্যয়নপত্র
-                                </Badge>
+                                <Badge variant={file.certificate_status === 'প্রিন্ট হয়েছে' ? 'default' : 'secondary'} className="px-1.5 py-0"><Award className="h-3 w-3 mr-1" />প্রত্যয়ন</Badge>
                             )}
                              {file.hasElectricityBill && (
-                                <Badge variant={file.bill_status === 'প্রিন্ট হয়েছে' ? 'default' : 'secondary'}>
-                                    <Bolt className="mr-1.5 h-3.5 w-3.5" />
-                                    বিদ্যুৎ বিল
-                                </Badge>
+                                <Badge variant={file.bill_status === 'প্রিন্ট হয়েছে' ? 'default' : 'secondary'} className="px-1.5 py-0"><Bolt className="h-3 w-3 mr-1" />বিদ্যুৎ বিল</Badge>
                             )}
                         </div>
                     </TableCell>
