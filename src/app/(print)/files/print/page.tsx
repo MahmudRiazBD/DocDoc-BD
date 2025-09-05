@@ -3,7 +3,7 @@
 
 import React, { useEffect, useState, Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
-import { Loader2 } from 'lucide-react';
+import { Loader2, Award, Bolt } from 'lucide-react';
 import { AppFile } from '@/lib/types';
 import { getFilesByIds } from '@/lib/supabase/database';
 import { isValid, parse } from 'date-fns';
@@ -23,7 +23,7 @@ const toEnglish = (str: string): string => {
 const parseDateString = (dateString: string): Date | null => {
     if (!dateString) return null;
     const englishDateString = toEnglish(dateString);
-    const formats = ["dd/MM/yyyy", "dd-MM-yyyy", "dd.MM.yyyy"];
+    const formats = ["dd/MM/yyyy", "dd-MM-yyyy", "dd.MM.yyyy", "yyyy-MM-dd"];
     const timeZone = 'Asia/Dhaka';
     const referenceDate = new Date();
 
@@ -39,6 +39,7 @@ const formatDobForDisplay = (dob: string | undefined): string => {
     if (/^\d{4}$/.test(toEnglish(dob))) {
       return toBengaliNumber(dob);
     }
+    // Handle both display formats and DB format
     const date = parseDateString(dob);
     return date ? toBengaliNumber(formatInTimeZone(date, 'Asia/Dhaka', 'dd/MM/yyyy')) : toBengaliNumber(dob);
   };
@@ -62,12 +63,11 @@ const PrintContent = () => {
       try {
         const fetchedFiles = await getFilesByIds(fileIds);
         
-        // Sort by clientName, then by applicantName
         fetchedFiles.sort((a, b) => {
             if (a.clientName < b.clientName) return -1;
             if (a.clientName > b.clientName) return 1;
-            if (a.applicantName < b.applicantName) return -1;
-            if (a.applicantName > b.applicantName) return 1;
+            if (a.serial_no > b.serial_no) return -1;
+            if (a.serial_no < b.serial_no) return 1;
             return 0;
         });
 
@@ -84,7 +84,7 @@ const PrintContent = () => {
 
   useEffect(() => {
     if (!loading && files.length > 0 && !error) {
-      setTimeout(() => window.print(), 500); // Add a small delay
+      setTimeout(() => window.print(), 500); 
     }
   }, [loading, files, error]);
 
@@ -122,47 +122,70 @@ const PrintContent = () => {
     return acc;
   }, {} as { [key: string]: AppFile[] });
 
-  let globalSerial = 1;
-
   return (
-    <div className="print-container bg-white font-sans text-black print:text-black">
-      <div className="a4-page p-4">
-        <h1 className="text-xl font-bold text-center mb-1">ফাইল তালিকা</h1>
-        <p className="text-center text-xs text-gray-600 mb-4">প্রিন্টের তারিখ: {toBengaliNumber(formatInTimeZone(new Date(), 'Asia/Dhaka', 'dd/MM/yyyy'))}</p>
+    <div className="print-container bg-gray-100 p-8 text-black print:bg-white print:p-0 print:text-black">
+      <div className="a4-page bg-white p-6 font-sans shadow-lg print:shadow-none">
+        <header className="mb-6 flex items-center justify-between border-b-2 border-gray-800 pb-4">
+            <div>
+                <h1 className="text-2xl font-bold text-gray-900">ডকডক বিডি</h1>
+                <p className="text-sm text-gray-600">ফাইল তালিকা</p>
+            </div>
+            <div className='text-right'>
+                <p className="text-sm font-medium text-gray-700">প্রিন্টের তারিখ</p>
+                <p className="text-sm text-gray-600">{toBengaliNumber(formatInTimeZone(new Date(), 'Asia/Dhaka', 'dd/MM/yyyy'))}</p>
+            </div>
+        </header>
         
         {Object.entries(groupedFiles).map(([clientName, clientFiles]) => (
-            <div key={clientName} className="mb-4 break-inside-avoid">
-                <h2 className="text-base font-bold mb-1 border-b-2 pb-1">ক্লায়েন্ট: {clientName}</h2>
-                <table className="w-full border-collapse text-xs">
-                <thead>
-                    <tr className="bg-gray-100 font-semibold">
-                    <th className="p-1 border text-left w-[5%]">ক্র.</th>
-                    <th className="p-1 border text-left w-[35%]">আবেদনকারীর নাম</th>
-                    <th className="p-1 border text-left w-[20%]">জন্ম তারিখ/সাল</th>
-                    <th className="p-1 border text-left w-[20%]">স্ট্যাটাস</th>
-                    <th className="p-1 border text-left w-[20%]">কমেন্ট</th>
+            <div key={clientName} className="mb-4 break-inside-avoid rounded-lg border border-gray-200">
+                <h2 className="bg-gray-100 px-3 py-2 text-sm font-bold text-gray-800 print:bg-gray-100">{clientName}</h2>
+                <table className="w-full text-xs">
+                <thead className='bg-gray-50 text-gray-600 print:bg-gray-50'>
+                    <tr>
+                        <th className="p-2 text-center w-[8%]">ক্রমিক নং</th>
+                        <th className="p-2 text-left w-[42%]">আবেদনকারীর নাম</th>
+                        <th className="p-2 text-left w-[25%]">জন্ম তারিখ/সাল</th>
+                        <th className="p-2 text-left w-[25%]">ডকুমেন্টস</th>
                     </tr>
                 </thead>
                 <tbody>
                     {clientFiles.map((file) => (
-                    <tr key={file.id} className="even:bg-gray-50">
-                        <td className="p-1 border text-center">{toBengaliNumber(globalSerial++)}</td>
-                        <td className="p-1 border">{file.applicantName}</td>
-                        <td className="p-1 border">{formatDobForDisplay(file.dob)}</td>
-                        <td className="p-1 border"></td>
-                        <td className="p-1 border"></td>
+                    <tr key={file.id} className="border-t border-gray-200">
+                        <td className="p-2 text-center font-mono">{toBengaliNumber(file.serial_no)}</td>
+                        <td className="p-2">{file.applicantName}</td>
+                        <td className="p-2">{formatDobForDisplay(file.dob)}</td>
+                        <td className="p-2">
+                           <div className='flex items-center gap-2'>
+                                {file.hasCertificate && (
+                                    <span title='প্রত্যয়নপত্র' className='flex items-center gap-1 rounded-full bg-blue-100 px-2 py-0.5 text-blue-800 print:bg-transparent print:border print:border-blue-800'>
+                                        <Award className="h-3 w-3"/>
+                                        <span>প্রত্যয়ন</span>
+                                    </span>
+                                )}
+                                {file.hasElectricityBill && (
+                                     <span title='বিদ্যুৎ বিল' className='flex items-center gap-1 rounded-full bg-green-100 px-2 py-0.5 text-green-800 print:bg-transparent print:border print:border-green-800'>
+                                        <Bolt className="h-3 w-3"/>
+                                        <span>বিল</span>
+                                    </span>
+                                )}
+                           </div>
+                        </td>
                     </tr>
                     ))}
                 </tbody>
                 </table>
             </div>
         ))}
+
+        <footer className="mt-8 pt-4 border-t text-center text-[10px] text-gray-500">
+            ডকডক বিডি দ্বারা স্বয়ংক্রিয়ভাবে তৈরি।
+        </footer>
       </div>
       <style jsx global>{`
         @media print {
             @page {
                 size: A4;
-                margin: 15mm;
+                margin: 10mm;
             }
             body, .print-container {
                 background: #fff !important;
@@ -174,18 +197,7 @@ const PrintContent = () => {
                 border: none !important;
                 width: 100% !important;
                 height: 100% !important;
-            }
-        }
-        @media screen {
-            .print-container {
-                padding: 2rem;
-                background-color: #e5e7eb; /* bg-gray-200 */
-            }
-            .a4-page {
-                width: 210mm;
-                min-height: 297mm;
-                margin: auto;
-                box-shadow: 0 0 0.5cm rgba(0,0,0,0.5);
+                padding: 0 !important;
             }
         }
       `}</style>
@@ -193,10 +205,10 @@ const PrintContent = () => {
   );
 };
 
-const BulkPrintPage = () => (
+const BulkFilesPrintPage = () => (
   <Suspense fallback={<div className="flex h-screen items-center justify-center">লোড হচ্ছে...</div>}>
     <PrintContent />
   </Suspense>
 );
 
-export default BulkPrintPage;
+export default BulkFilesPrintPage;
