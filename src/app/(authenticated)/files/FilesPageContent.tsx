@@ -34,7 +34,7 @@ import {
   DropdownMenuSubContent,
 } from '@/components/ui/dropdown-menu';
 import { AppFile, Client, RechargeEntry, BillAddress, BillTemplate, Institution } from '@/lib/types';
-import { isValid, parse, differenceInYears } from 'date-fns';
+import { isValid, parse, differenceInYears, format } from 'date-fns';
 import { toDate, formatInTimeZone } from 'date-fns-tz';
 
 import {
@@ -246,6 +246,7 @@ export const FileForm = ({
 }) => {
   const { toast } = useToast();
   const [isPending, startTransition] = useTransition();
+  const [isClientPopoverOpen, setClientPopoverOpen] = useState(false);
 
   const form = useForm<FileSchema>({
     resolver: zodResolver(fileSchema),
@@ -440,7 +441,7 @@ export const FileForm = ({
                     <FormField control={form.control} name="clientId" render={({ field }) => (
                         <FormItem className="flex flex-col pt-2">
                         <FormLabel>ক্লায়েন্টের নাম</FormLabel>
-                            <Popover>
+                            <Popover open={isClientPopoverOpen} onOpenChange={setClientPopoverOpen}>
                                 <PopoverTrigger asChild>
                                     <FormControl>
                                     <Button variant="outline" role="combobox" className={cn("w-full justify-between", !field.value && "text-muted-foreground")}>
@@ -456,7 +457,10 @@ export const FileForm = ({
                                         <CommandList>
                                             <CommandGroup>
                                             {clients.map((client) => (
-                                                <CommandItem value={client.name} key={client.id} onSelect={() => form.setValue("clientId", client.id)}>
+                                                <CommandItem value={client.name} key={client.id} onSelect={() => {
+                                                    form.setValue("clientId", client.id);
+                                                    setClientPopoverOpen(false);
+                                                }}>
                                                 <Check className={cn("mr-2 h-4 w-4", client.id === field.value ? "opacity-100" : "opacity-0")} />
                                                 {client.name}
                                                 </CommandItem>
@@ -1378,7 +1382,7 @@ export default function FilesPageContent({
                             )}
                         </div>
                     </TableCell>
-                    <TableCell>{file.createdAt ? formatInTimeZone(parse(file.createdAt, "yyyy-MM-dd'T'HH:mm:ss.SSSSSSxxx", new Date()), 'Asia/Dhaka', 'dd/MM/yyyy') : ''}</TableCell>
+                    <TableCell>{file.createdAt ? format(parse(file.createdAt, "yyyy-MM-dd'T'HH:mm:ss.SSSSSSxxx", new Date()), 'dd/MM/yyyy') : ''}</TableCell>
                     <TableCell>
                         <DropdownMenu>
                         <DropdownMenuTrigger asChild><Button aria-haspopup="true" size="icon" variant="ghost"><MoreHorizontal className="h-4 w-4" /><span className="sr-only">Toggle menu</span></Button></DropdownMenuTrigger>
@@ -1505,7 +1509,7 @@ export default function FilesPageContent({
                     <p><strong>জন্ম তারিখ/সাল:</strong></p>
                     <p>{formatDobForDisplay(file.dob)}</p>
                     <p><strong>তৈরির তারিখ:</strong></p>
-                    <p>{file.createdAt ? formatInTimeZone(parse(file.createdAt, "yyyy-MM-dd'T'HH:mm:ss.SSSSSSxxx", new Date()), 'Asia/Dhaka', 'dd/MM/yyyy') : ''}</p>
+                    <p>{file.createdAt ? format(parse(file.createdAt, "yyyy-MM-dd'T'HH:mm:ss.SSSSSSxxx", new Date()), 'dd/MM/yyyy') : ''}</p>
                     <p><strong>ডকুমেন্টস:</strong></p>
                     <div className="flex gap-2">
                         {file.hasCertificate && <Badge variant={file.certificate_status === 'প্রিন্ট হয়েছে' ? 'default' : 'secondary'} className="px-1.5 py-0"><Award className="h-3 w-3 mr-1" />প্রত্যয়ন</Badge>}
@@ -1547,3 +1551,5 @@ export default function FilesPageContent({
     
 
       
+
+    
