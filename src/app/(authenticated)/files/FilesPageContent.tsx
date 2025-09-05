@@ -351,7 +351,7 @@ export const FileForm = ({
                 const academicData = await generateCertificateData({ age: applicantAge, date: new Date().toISOString() });
                 
                 fileData.fatherNameBn = values.fatherName;
-                fileData.motherName = values.motherName;
+                fileData.motherNameBn = values.motherName;
                 fileData.institutionId = randomInstitution.id;
                 fileData.class = academicData.class;
                 fileData.roll = Number(academicData.roll);
@@ -400,8 +400,7 @@ export const FileForm = ({
                 fileData.bill_template_id = randomAddress.templateId;
                 fileData.bill_recharge_history = generateRechargeHistory(randomAddress.templateId as 'desco' | 'dpdc');
                 fileData.bill_status = 'প্রিন্ট হয়নি';
-                fileData.fatherNameEn = values.fatherNameEnglish;
-
+                
                 toastMessages.push('সংশ্লিষ্ট বিদ্যুৎ বিল সফলভাবে তৈরি করা হয়েছে।');
         }
         
@@ -1132,7 +1131,7 @@ export default function FilesPageContent({
                         <h3 className="font-semibold mb-2 text-base">প্রত্যয়নপত্রের তথ্য</h3>
                         <div className="grid grid-cols-2 gap-x-4 gap-y-1">
                             <p><strong>পিতার নাম:</strong></p><p>{dialogState.file.fatherNameBn}</p>
-                            <p><strong>মাতার নাম:</strong></p><p>{dialogState.file.motherName}</p>
+                            <p><strong>মাতার নাম:</strong></p><p>{dialogState.file.motherNameBn}</p>
                             <p><strong>প্রতিষ্ঠান:</strong></p><p>{dialogState.file.institutionName}</p>
                             <p><strong>ক্লাস:</strong></p><p>{dialogState.file.class}</p>
                             <p><strong>রোল:</strong></p><p>{dialogState.file.roll}</p>
@@ -1571,17 +1570,3 @@ export default function FilesPageContent({
   );
 }
   
-
-    
-    
-
-      
-
-    
-
-
-
-
-
-
-    

@@ -1,3 +1,4 @@
+
 'use client';
 
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -112,7 +113,7 @@ export default function EditCertificatePage() {
                 form.reset({
                     name: fileData.applicantNameBn || '',
                     fatherName: fileData.fatherNameBn ?? '',
-                    motherName: fileData.motherName ?? '',
+                    motherName: fileData.motherNameBn ?? '',
                     dob: formattedDob,
                     class: fileData.class ?? '',
                     roll: fileData.roll ?? undefined,
@@ -193,7 +194,7 @@ export default function EditCertificatePage() {
       const fileUpdateData: Partial<AppFile> = {
         applicantNameBn: values.name,
         fatherNameBn: values.fatherName,
-        motherName: values.motherName,
+        motherNameBn: values.motherName,
         dob: dobForDb,
         class: values.class,
         roll: values.roll,
@@ -439,5 +440,3 @@ export default function EditCertificatePage() {
     </Card>
   );
 }
-
-    

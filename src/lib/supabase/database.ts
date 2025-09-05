@@ -22,8 +22,8 @@ function handleError(error: any, context: string) {
 export async function addFile(file: Partial<AppFile>): Promise<AppFile> {
   const supabaseAdmin = createClient();
   const insertData = {
-    applicant_name_bn: file.applicantNameBn,
-    applicant_name_en: file.applicantNameEn,
+    applicant_name_bn: file.applicantNameBn || null,
+    applicant_name_en: file.applicantNameEn || null,
     dob: file.dob,
     client_id: file.clientId,
     client_name: file.clientName,
@@ -34,7 +34,7 @@ export async function addFile(file: Partial<AppFile>): Promise<AppFile> {
     // Certificate fields
     institution_id: file.institutionId,
     father_name_bn: file.fatherNameBn || null,
-    mother_name: file.motherName,
+    mother_name_bn: file.motherNameBn || null,
     class: file.class,
     roll: file.roll,
     certificate_date: file.certificateDate,
@@ -99,7 +99,7 @@ const mapFileDataToAppFile = (file: any): AppFile => ({
     institutionId: file.institution_id,
     institutionName: file.institutions?.name,
     fatherNameBn: file.father_name_bn,
-    motherName: file.mother_name,
+    motherNameBn: file.mother_name_bn,
     class: file.class,
     roll: file.roll,
     certificateDate: file.certificate_date,
@@ -288,7 +288,7 @@ export async function updateFile(id: string, file: Partial<AppFile>): Promise<vo
     // Certificate fields
     if (file.institutionId !== undefined) updateData.institution_id = file.institutionId;
     if (file.fatherNameBn !== undefined) updateData.father_name_bn = file.fatherNameBn;
-    if (file.motherName !== undefined) updateData.mother_name = file.motherName;
+    if (file.motherNameBn !== undefined) updateData.mother_name_bn = file.motherNameBn;
     if (file.class !== undefined) updateData.class = file.class;
     if (file.roll !== undefined) updateData.roll = file.roll;
     if (file.certificateDate !== undefined) updateData.certificate_date = file.certificateDate;
@@ -780,4 +780,3 @@ export async function getDashboardStats(
     };
   }
 }
-  

@@ -22,7 +22,7 @@ export interface AppFile {
   institutionId?: string | null;
   institutionName?: string; // Denormalized from institutions table
   fatherNameBn?: string | null; // Bengali
-  motherName?: string | null; // Bengali
+  motherNameBn?: string | null; // Bengali
   class?: string | null;
   roll?: number | null;
   certificateDate?: string | null; // YYYY-MM-DD
@@ -142,5 +142,3 @@ export interface DashboardStatsData {
 
 
 export type FilterType = 'lifetime' | 'daily' | 'weekly' | 'monthly' | 'yearly' | 'custom' | 'specific_date' | 'specific_month';
-
-    
