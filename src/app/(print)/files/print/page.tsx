@@ -125,7 +125,7 @@ const PrintContent = () => {
   let globalSerial = 1;
 
   return (
-    <div className="print-container bg-white font-sans">
+    <div className="print-container bg-white font-sans text-black print:text-black">
       <div className="a4-page p-4">
         <h1 className="text-xl font-bold text-center mb-1">ফাইল তালিকা</h1>
         <p className="text-center text-xs text-gray-600 mb-4">প্রিন্টের তারিখ: {toBengaliNumber(formatInTimeZone(new Date(), 'Asia/Dhaka', 'dd/MM/yyyy'))}</p>
