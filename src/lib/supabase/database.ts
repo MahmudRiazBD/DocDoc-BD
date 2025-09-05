@@ -45,7 +45,7 @@ export async function addFile(file: Partial<AppFile>): Promise<AppFile> {
     // Bill fields
     bill_template_id: file.bill_template_id,
     bill_holder_name: file.bill_holder_name,
-    father_name_en: file.fatherNameEn,
+    father_name_en: file.fatherNameEn, // Corrected this line
     bill_customer_no: file.bill_customer_no,
     bill_sanc_load: file.bill_sanc_load,
     bill_book_no: file.bill_book_no,
