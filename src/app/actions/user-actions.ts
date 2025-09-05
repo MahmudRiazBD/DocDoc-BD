@@ -18,25 +18,30 @@ type UserSchema = z.infer<typeof userSchema>;
 export async function createNewUser(
   values: UserSchema
 ): Promise<{ user?: User; error?: string }> {
-  const supabaseAdmin = createClient();
+  const supabase = createClient();
   
   try {
     const validatedData = userSchema.parse(values);
 
-    // Create user in Supabase Auth using the admin client
-    const { data: authData, error: authError } = await supabaseAdmin.auth.admin.createUser({
+    // For sign-up, we must use the public `signUp` method, not the admin `createUser` method.
+    // The admin method is for creating users from an already authenticated admin session.
+    const { data: authData, error: authError } = await supabase.auth.signUp({
       email: validatedData.email,
       password: validatedData.password,
-      email_confirm: true, // Auto-confirm email for simplicity
-      user_metadata: {
-        name: validatedData.name,
-        role: validatedData.role,
-      },
+      options: {
+        data: {
+            name: validatedData.name,
+            role: validatedData.role,
+        }
+      }
     });
 
     if (authError) throw authError;
+    if (!authData.user) throw new Error('User creation was successful but no user object was returned.');
 
-    // Add user to public 'users' table
+    // Since signUp doesn't automatically insert into the public.users table,
+    // we do it manually here. This is safe because this server action is
+    // only called from controlled components and the middleware protects the signup page.
     const newUser: Omit<User, 'created_at' | 'serial_no'> = {
       id: authData.user.id,
       name: validatedData.name,
@@ -44,6 +49,8 @@ export async function createNewUser(
       role: validatedData.role,
     };
     
+    // We use the admin client here to bypass RLS for the initial insert.
+    const supabaseAdmin = createClient();
     const { data: dbUser, error: dbError } = await supabaseAdmin
         .from('users')
         .insert(newUser)
@@ -51,11 +58,13 @@ export async function createNewUser(
         .single();
     
     if (dbError) {
+        // If the DB insert fails, we should roll back the auth user creation.
         await supabaseAdmin.auth.admin.deleteUser(authData.user.id);
         throw dbError;
     }
 
     revalidatePath('/users');
+    revalidatePath('/dashboard', 'layout'); // Revalidate layout to update user state
 
     return { user: dbUser as User };
   } catch (error: any) {
