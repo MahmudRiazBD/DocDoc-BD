@@ -57,7 +57,7 @@ const BulkPrintContent = () => {
 
   if (loading) {
     return (
-      <div className="flex h-screen flex-col items-center justify-center bg-gray-100">
+      <div className="flex h-screen flex-col items-center justify-center bg-gray-100 text-black">
         <Loader2 className="h-16 w-16 animate-spin text-primary" />
         <p className="mt-4 text-lg">আপনার বিলগুলো প্রিন্টের জন্য প্রস্তুত করা হচ্ছে...</p>
       </div>
@@ -132,5 +132,3 @@ const BulkPrintPage = () => (
 );
 
 export default BulkPrintPage;
-
-  
