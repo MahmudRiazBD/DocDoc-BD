@@ -133,18 +133,6 @@ export const PrintableCertificateBody = ({ file, institution }: { file: AppFile;
                 </div>
                 <div className='relative text-right'>
                     <p>তারিখ: {bengaliFormattedCertificateDate}</p>
-                    {institution.signatureUrl2 && (
-                        <div className="absolute top-[-5px] right-[-10px] opacity-60 -rotate-12">
-                            <Image
-                                src={institution.signatureUrl2}
-                                alt="Signature 2"
-                                width={120}
-                                height={60}
-                                className="object-contain"
-                                unoptimized
-                            />
-                        </div>
-                    )}
                 </div>
             </div>
 
