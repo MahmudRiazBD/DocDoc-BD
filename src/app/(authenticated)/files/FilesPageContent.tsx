@@ -149,7 +149,7 @@ const fileSchema = z.object({
 
     if (data.createCertificate) {
         if (!isBengali(data.applicantName)) {
-             ctx.addIssue({ code: z.ZodIssueCode.custom, message: 'আবেদনকারীর নাম অবশ্যই বাংলায় লিখতে হবে।', path: ['applicantName'] });
+             ctx.addIssue({ code: z.ZodIssueCode.custom, message: 'প্রত্যয়নপত্রের জন্য আবেদনকারীর নাম অবশ্যই বাংলায় লিখতে হবে।', path: ['applicantName'] });
         }
         if (!parseDateString(dob)) {
             ctx.addIssue({ code: z.ZodIssueCode.custom, message: 'প্রত্যয়নপত্রের জন্য সম্পূর্ণ জন্ম তারিখ আবশ্যক (DD/MM/YYYY)', path: ['dob'] });
@@ -267,6 +267,10 @@ export const FileForm = ({
   const watchDob = form.watch('dob');
   const watchApplicantName = form.watch('applicantName');
   
+  const isCertificateCreationAllowed = useMemo(() => {
+    return isBengali(watchApplicantName) && parseDateString(watchDob) !== null;
+  }, [watchApplicantName, watchDob]);
+
   const getBirthYear = () => {
     if(!watchDob) return null;
     const englishDob = toEnglish(watchDob);
@@ -450,10 +454,12 @@ export const FileForm = ({
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <FormField control={form.control} name="createCertificate" render={({ field }) => (
                             <FormItem className="flex flex-row items-start space-x-3 space-y-0 rounded-md border p-4">
-                            <FormControl><Checkbox checked={field.value} onCheckedChange={field.onChange} disabled={!watchDob} /></FormControl>
+                            <FormControl><Checkbox checked={field.value} onCheckedChange={field.onChange} disabled={!isCertificateCreationAllowed} /></FormControl>
                             <div className="space-y-1 leading-none">
                                 <FormLabel>প্রত্যয়নপত্র তৈরি করুন</FormLabel>
-                                {!watchDob && <p className="text-xs text-muted-foreground">জন্ম তারিখ দিন।</p>}
+                                <FormDescription className={cn(!isCertificateCreationAllowed && "text-destructive/80")}>
+                                    নাম বাংলায় এবং জন্ম তারিখ সম্পূর্ণ দিন।
+                                </FormDescription>
                             </div>
                             </FormItem>
                         )} />
