@@ -6,7 +6,7 @@
 import { createClient } from '@/lib/supabase/server';
 import { revalidatePath } from 'next/cache';
 import { AppFile, User, Institution, Client, BillAddress, BillTemplate, RechargeEntry, DashboardStatsData, ChartDataPoint } from '../types';
-import { differenceInDays, getWeekOfMonth, parse, startOfYear, endOfYear, add, startOfDay, endOfDay, startOfWeek, endOfMonth, startOfMonth } from 'date-fns';
+import { differenceInDays, getWeekOfMonth, parse, startOfYear, endOfYear, add, startOfDay, endOfDay, startOfWeek, startOfMonth, endOfMonth } from 'date-fns';
 import { formatInTimeZone, toDate } from 'date-fns-tz';
 import { bn } from 'date-fns/locale';
 
@@ -34,7 +34,7 @@ export async function addFile(file: Partial<AppFile>): Promise<AppFile> {
 
     // Certificate fields
     institution_id: file.institutionId,
-    father_name: file.fatherName,
+    father_name_bn: file.fatherNameBn,
     mother_name: file.motherName,
     class: file.class,
     roll: file.roll,
@@ -45,7 +45,7 @@ export async function addFile(file: Partial<AppFile>): Promise<AppFile> {
     // Bill fields
     bill_template_id: file.bill_template_id,
     bill_holder_name: file.bill_holder_name,
-    father_name_english: file.fatherNameEnglish,
+    father_name_en: file.fatherNameEn,
     bill_customer_no: file.bill_customer_no,
     bill_sanc_load: file.bill_sanc_load,
     bill_book_no: file.bill_book_no,
@@ -99,7 +99,7 @@ const mapFileDataToAppFile = (file: any): AppFile => ({
     // Certificate fields
     institutionId: file.institution_id,
     institutionName: file.institutions?.name,
-    fatherName: file.father_name,
+    fatherNameBn: file.father_name_bn,
     motherName: file.mother_name,
     class: file.class,
     roll: file.roll,
@@ -112,7 +112,7 @@ const mapFileDataToAppFile = (file: any): AppFile => ({
     bill_template_name: file.bill_templates?.name,
     bill_template_logo_url: file.bill_templates?.logo_url,
     bill_holder_name: file.bill_holder_name,
-    fatherNameEnglish: file.father_name_english,
+    fatherNameEn: file.father_name_en,
     bill_customer_no: file.bill_customer_no,
     bill_sanc_load: file.bill_sanc_load,
     bill_book_no: file.bill_book_no,
@@ -288,7 +288,7 @@ export async function updateFile(id: string, file: Partial<AppFile>): Promise<vo
     
     // Certificate fields
     if (file.institutionId !== undefined) updateData.institution_id = file.institutionId;
-    if (file.fatherName !== undefined) updateData.father_name = file.fatherName;
+    if (file.fatherNameBn !== undefined) updateData.father_name_bn = file.fatherNameBn;
     if (file.motherName !== undefined) updateData.mother_name = file.motherName;
     if (file.class !== undefined) updateData.class = file.class;
     if (file.roll !== undefined) updateData.roll = file.roll;
@@ -298,6 +298,7 @@ export async function updateFile(id: string, file: Partial<AppFile>): Promise<vo
     // Bill fields
     if (file.bill_template_id !== undefined) updateData.bill_template_id = file.bill_template_id;
     if (file.bill_address !== undefined) updateData.bill_address = file.bill_address;
+    if (file.fatherNameEn !== undefined) updateData.father_name_en = file.fatherNameEn;
 
     if (Object.keys(updateData).length > 0) {
         const { error } = await supabaseAdmin.from('files').update(updateData).eq('id', id);
@@ -781,3 +782,5 @@ export async function getDashboardStats(
   }
 }
   
+
+    

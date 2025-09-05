@@ -110,8 +110,8 @@ export default function EditCertificatePage() {
                     // keep original if parsing fails
                 }
                 form.reset({
-                    name: fileData.applicantNameBn || fileData.applicantNameEn || '',
-                    fatherName: fileData.fatherName ?? '',
+                    name: fileData.applicantNameBn || '',
+                    fatherName: fileData.fatherNameBn ?? '',
                     motherName: fileData.motherName ?? '',
                     dob: formattedDob,
                     class: fileData.class ?? '',
@@ -192,7 +192,7 @@ export default function EditCertificatePage() {
 
       const fileUpdateData: Partial<AppFile> = {
         applicantNameBn: values.name,
-        fatherName: values.fatherName,
+        fatherNameBn: values.fatherName,
         motherName: values.motherName,
         dob: dobForDb,
         class: values.class,
@@ -439,3 +439,5 @@ export default function EditCertificatePage() {
     </Card>
   );
 }
+
+    

@@ -49,7 +49,7 @@ const renderCertificateText = (text: string, file: AppFile) => {
     let renderedText = text || ''; // Ensure text is not undefined
     
     const applicantName = file.applicantNameBn;
-    if (!applicantName || !file.dob || !file.roll || !file.sessionYear || !file.class || !file.fatherName || !file.motherName) {
+    if (!applicantName || !file.dob || !file.roll || !file.sessionYear || !file.class || !file.fatherNameBn || !file.motherName) {
       return { __html: 'Error: Missing certificate data in file.' };
     }
 
@@ -67,7 +67,7 @@ const renderCertificateText = (text: string, file: AppFile) => {
     const bengaliClass = toBengaliOrdinal(file.class);
 
     renderedText = renderedText.replace(/{{name}}/g, `<span class="font-bold">${applicantName}</span>`);
-    renderedText = renderedText.replace(/{{fatherName}}/g, `<span class="font-semibold">${file.fatherName}</span>`);
+    renderedText = renderedText.replace(/{{fatherName}}/g, `<span class="font-semibold">${file.fatherNameBn}</span>`);
     renderedText = renderedText.replace(/{{motherName}}/g, `<span class="font-semibold">${file.motherName}</span>`);
     renderedText = renderedText.replace(/{{dob}}/g, `<span class="font-semibold">${bengaliFormattedDob}</span>`);
     renderedText = renderedText.replace(/{{class}}/g, `<span class="font-semibold">${bengaliClass}</span>`);
@@ -271,3 +271,5 @@ const CertificatePrintPage = () => {
 };
 
 export default CertificatePrintPage;
+
+    

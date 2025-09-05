@@ -21,7 +21,7 @@ export interface AppFile {
   // Certificate-related fields
   institutionId?: string | null;
   institutionName?: string; // Denormalized from institutions table
-  fatherName?: string | null; // Bengali
+  fatherNameBn?: string | null; // Bengali
   motherName?: string | null; // Bengali
   class?: string | null;
   roll?: number | null;
@@ -34,7 +34,7 @@ export interface AppFile {
   bill_template_name?: string; // Denormalized
   bill_template_logo_url?: string; // Denormalized
   bill_holder_name?: string | null;
-  fatherNameEnglish?: string | null;
+  fatherNameEn?: string | null;
   bill_customer_no?: string | null;
   bill_sanc_load?: string | null;
   bill_book_no?: string | null;
@@ -142,3 +142,5 @@ export interface DashboardStatsData {
 
 
 export type FilterType = 'lifetime' | 'daily' | 'weekly' | 'monthly' | 'yearly' | 'custom' | 'specific_date' | 'specific_month';
+
+    
