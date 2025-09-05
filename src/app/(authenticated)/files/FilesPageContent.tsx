@@ -1,5 +1,4 @@
 
-
 'use client';
 
 import React, { useState, useEffect, useTransition, useMemo } from 'react';
@@ -35,7 +34,7 @@ import {
   DropdownMenuSubContent,
 } from '@/components/ui/dropdown-menu';
 import { AppFile, Client, RechargeEntry, BillAddress, BillTemplate, Institution } from '@/lib/types';
-import { isValid, parse, differenceInYears, format } from 'date-fns';
+import { isValid, parse, differenceInYears } from 'date-fns';
 import { toDate, formatInTimeZone } from 'date-fns-tz';
 
 import {
@@ -77,6 +76,7 @@ import { Calendar } from '@/components/ui/calendar';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useRouter, usePathname, useSearchParams } from 'next/navigation';
 import { ScrollArea } from '@/components/ui/scroll-area';
+import { format } from 'date-fns';
 
 // Helper to convert English digits to Bengali
 const toBengali = (str: string | number): string => {
@@ -94,7 +94,6 @@ const toEnglish = (str: string): string => {
 const parseDateString = (dateString: string): Date | null => {
     if (!dateString) return null;
     const englishDateString = toEnglish(dateString.trim());
-    // This regex now captures the separator used
     const dateRegex = /^(?<day>\d{1,2})(?<sep>[\/\-.])(?<month>\d{1,2})\k<sep>(?<year>\d{4})$/;
     const match = englishDateString.match(dateRegex);
     if (match?.groups) {
@@ -328,7 +327,7 @@ export const FileForm = ({
 
         const fileData: Partial<AppFile> = { 
             applicantNameBn: isBengali(values.applicantName) ? values.applicantName : null,
-            applicantNameEn: isEnglish(values.applicantName) ? values.applicantName : (createElectricityBill && applicantAge && applicantAge >= 24 ? values.applicantNameEnglish : null),
+            applicantNameEn: isEnglish(values.applicantName) ? values.applicantName : null,
             clientId: values.clientId,
             clientName: selectedClient.name,
             dob: dobForDb,
@@ -348,7 +347,7 @@ export const FileForm = ({
                 
                 const academicData = await generateCertificateData({ age: applicantAge, date: new Date().toISOString() });
                 
-                fileData.fatherName = values.fatherName;
+                fileData.fatherNameBn = values.fatherName;
                 fileData.motherName = values.motherName;
                 fileData.institutionId = randomInstitution.id;
                 fileData.class = academicData.class;
@@ -372,7 +371,7 @@ export const FileForm = ({
                 let billHolderName = '';
                 if(applicantAge < 24) {
                     billHolderName = values.fatherNameEnglish!;
-                    fileData.fatherNameEnglish = values.fatherNameEnglish;
+                    fileData.fatherNameEn = values.fatherNameEnglish;
                 } else {
                     // If applicant name is already in english, use it. Otherwise use the separate english name field.
                     billHolderName = isEnglish(values.applicantName) ? values.applicantName : values.applicantNameEnglish!;
@@ -1131,7 +1130,7 @@ export default function FilesPageContent({
                         <div><Separator className="my-4" />
                         <h3 className="font-semibold mb-2 text-base">প্রত্যয়নপত্রের তথ্য</h3>
                         <div className="grid grid-cols-2 gap-x-4 gap-y-1">
-                            <p><strong>পিতার নাম:</strong></p><p>{dialogState.file.fatherName}</p>
+                            <p><strong>পিতার নাম:</strong></p><p>{dialogState.file.fatherNameBn}</p>
                             <p><strong>মাতার নাম:</strong></p><p>{dialogState.file.motherName}</p>
                             <p><strong>প্রতিষ্ঠান:</strong></p><p>{dialogState.file.institutionName}</p>
                             <p><strong>ক্লাস:</strong></p><p>{dialogState.file.class}</p>
@@ -1444,7 +1443,7 @@ export default function FilesPageContent({
                         </DropdownMenu>
                     </TableCell>
                     </TableRow>
-                )})}
+                ))}
                 </TableBody>
             </Table>
             </div>
@@ -1534,7 +1533,7 @@ export default function FilesPageContent({
                     </div>
                   </CardContent>
                 </Card>
-              )})}
+              ))}
             </div>
           </>
         )}
@@ -1552,8 +1551,8 @@ export default function FilesPageContent({
           <DialogContent className="sm:max-w-lg">
             <DialogHeader>
               <DialogTitle>{getDialogTitle()}</DialogTitle>
-              {dialogState.mode === 'add' && <DialogDescription>নতুন ফাইল তৈরি করুন এবং ঐচ্ছিকভাবে প্রত্যয়নপত্র ও বিদ্যুৎ বিল যোগ করুন।</DialogDescription>}
-               {dialogState.mode === 'edit' && <DialogDescription>ফাইলের তথ্য এবং এর সাথে যুক্ত ডকুমেন্টের বিবরণ আপডেট করুন।</DialogDescription>}
+              {dialogState.mode === 'add' && <DialogDescription>নতুন ফাইল তৈরি করুন এবং ঐচ্ছিকভাবে প্রত্যয়নপত্র ও বিদ্যুৎ বিল যোগ করুন.</DialogDescription>}
+               {dialogState.mode === 'edit' && <DialogDescription>ফাইলের তথ্য এবং এর সাথে যুক্ত ডকুমেন্টের বিবরণ আপডেট করুন.</DialogDescription>}
             </DialogHeader>
             {renderDialogContent()}
           </DialogContent>
@@ -1569,3 +1568,5 @@ export default function FilesPageContent({
       
 
     
+
+

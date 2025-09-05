@@ -1,5 +1,4 @@
 
-
 // A file for interacting with the Supabase database
 'use server';
 
@@ -45,7 +44,7 @@ export async function addFile(file: Partial<AppFile>): Promise<AppFile> {
     // Bill fields
     bill_template_id: file.bill_template_id,
     bill_holder_name: file.bill_holder_name,
-    father_name_en: file.fatherNameEn, // Corrected this line
+    father_name_en: file.fatherNameEn,
     bill_customer_no: file.bill_customer_no,
     bill_sanc_load: file.bill_sanc_load,
     bill_book_no: file.bill_book_no,
@@ -437,8 +436,8 @@ export async function addInstitution(institution: Omit<Institution, 'id' | 'crea
         website: data.website,
         createdAt: data.created_at,
         logoUrl: data.logo_url,
-        signatureUrl1: data.signature_url_1,
-        signatureUrl2: data.signature_url_2,
+        signatureUrl1: data.signatureUrl1,
+        signatureUrl2: data.signatureUrl2,
         collegeCode: data.college_code,
         schoolCode: data.school_code,
         certificateText: data.certificate_text,
@@ -784,3 +783,4 @@ export async function getDashboardStats(
   
 
     
+
