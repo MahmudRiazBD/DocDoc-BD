@@ -170,7 +170,7 @@ const fileSchema = z.object({
             if (!data.fatherNameEnglish) {
                 ctx.addIssue({ code: z.ZodIssueCode.custom, message: '২৪ বছরের কম বয়সীদের জন্য পিতার ইংরেজি নাম আবশ্যক', path: ['fatherNameEnglish'] });
             } else if (!isEnglish(data.fatherNameEnglish)) {
-                ctx.addIssue({ code: z.ZodIssueCode.custom, message: 'পিতার নাম অবশ্যই ইংরেজিতে লিখতে হবে।', path: ['fatherNameEnglish'] });
+                ctx.addIssue({ code: zZodIssueCode.custom, message: 'পিতার নাম অবশ্যই ইংরেজিতে লিখতে হবে।', path: ['fatherNameEnglish'] });
             }
         } else { // 24 or older
             if (!isEnglish(data.applicantName) && !data.applicantNameEnglish) {
