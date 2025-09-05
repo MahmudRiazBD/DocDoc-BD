@@ -33,7 +33,7 @@ export async function addFile(file: Partial<AppFile>): Promise<AppFile> {
 
     // Certificate fields
     institution_id: file.institutionId,
-    father_name_bn: file.fatherNameBn,
+    father_name_bn: file.fatherNameBn || null,
     mother_name: file.motherName,
     class: file.class,
     roll: file.roll,
@@ -44,7 +44,7 @@ export async function addFile(file: Partial<AppFile>): Promise<AppFile> {
     // Bill fields
     bill_template_id: file.bill_template_id,
     bill_holder_name: file.bill_holder_name,
-    father_name_en: file.fatherNameEn,
+    father_name_en: file.fatherNameEn || null,
     bill_customer_no: file.bill_customer_no,
     bill_sanc_load: file.bill_sanc_load,
     bill_book_no: file.bill_book_no,
@@ -781,6 +781,3 @@ export async function getDashboardStats(
   }
 }
   
-
-    
-
