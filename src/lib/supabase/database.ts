@@ -1,6 +1,7 @@
 
 
 
+
 // A file for interacting with the Supabase database
 'use server';
 
@@ -24,6 +25,7 @@ function handleError(error: any, context: string) {
 export async function addFile(file: Partial<AppFile>): Promise<AppFile> {
   const supabaseAdmin = createClient();
   const insertData = {
+    application_no: file.application_no || null,
     applicant_name_bn: file.applicantNameBn || null,
     applicant_name_en: file.applicantNameEn || null,
     dob: file.dob,
@@ -36,6 +38,7 @@ export async function addFile(file: Partial<AppFile>): Promise<AppFile> {
     // Certificate fields
     institution_id: file.institutionId,
     father_name_bn: file.fatherNameBn || null,
+    father_name_en: file.fatherNameEn || null,
     mother_name_bn: file.motherNameBn || null,
     class: file.class,
     roll: file.roll,
@@ -46,7 +49,6 @@ export async function addFile(file: Partial<AppFile>): Promise<AppFile> {
     // Bill fields
     bill_template_id: file.bill_template_id,
     bill_holder_name: file.bill_holder_name,
-    father_name_en: file.fatherNameEn || null,
     bill_customer_no: file.bill_customer_no,
     bill_sanc_load: file.bill_sanc_load,
     bill_book_no: file.bill_book_no,
@@ -73,6 +75,7 @@ export async function addFile(file: Partial<AppFile>): Promise<AppFile> {
   const result: AppFile = {
       id: data.id,
       serial_no: data.serial_no,
+      application_no: data.application_no,
       applicantNameBn: data.applicant_name_bn,
       applicantNameEn: data.applicant_name_en,
       dob: data.dob,
@@ -91,6 +94,7 @@ const mapFileDataToAppFile = (file: any): AppFile => ({
     createdAt: file.created_at,
     clientId: file.client_id,
     clientName: file.client_name,
+    application_no: file.application_no,
     applicantNameBn: file.applicant_name_bn,
     applicantNameEn: file.applicant_name_en,
     dob: file.dob,
@@ -101,6 +105,7 @@ const mapFileDataToAppFile = (file: any): AppFile => ({
     institutionId: file.institution_id,
     institutionName: file.institutions?.name,
     fatherNameBn: file.father_name_bn,
+    fatherNameEn: file.father_name_en,
     motherNameBn: file.mother_name_bn,
     class: file.class,
     roll: file.roll,
@@ -113,7 +118,6 @@ const mapFileDataToAppFile = (file: any): AppFile => ({
     bill_template_name: file.bill_templates?.name,
     bill_template_logo_url: file.bill_templates?.logo_url,
     bill_holder_name: file.bill_holder_name,
-    fatherNameEn: file.father_name_en,
     bill_customer_no: file.bill_customer_no,
     bill_sanc_load: file.bill_sanc_load,
     bill_book_no: file.bill_book_no,
@@ -281,6 +285,7 @@ export async function updateFile(id: string, file: Partial<AppFile>): Promise<vo
     const updateData: { [key: string]: any } = {};
 
     // Core file info
+    if (file.application_no !== undefined) updateData.application_no = file.application_no;
     if (file.applicantNameBn !== undefined) updateData.applicant_name_bn = file.applicantNameBn;
     if (file.applicantNameEn !== undefined) updateData.applicant_name_en = file.applicantNameEn;
     if (file.clientId !== undefined) updateData.client_id = file.clientId;
@@ -290,6 +295,7 @@ export async function updateFile(id: string, file: Partial<AppFile>): Promise<vo
     // Certificate fields
     if (file.institutionId !== undefined) updateData.institution_id = file.institutionId;
     if (file.fatherNameBn !== undefined) updateData.father_name_bn = file.fatherNameBn;
+    if (file.fatherNameEn !== undefined) updateData.father_name_en = file.fatherNameEn;
     if (file.motherNameBn !== undefined) updateData.mother_name_bn = file.motherNameBn;
     if (file.class !== undefined) updateData.class = file.class;
     if (file.roll !== undefined) updateData.roll = file.roll;
@@ -299,7 +305,6 @@ export async function updateFile(id: string, file: Partial<AppFile>): Promise<vo
     // Bill fields
     if (file.bill_template_id !== undefined) updateData.bill_template_id = file.bill_template_id;
     if (file.bill_address !== undefined) updateData.bill_address = file.bill_address;
-    if (file.fatherNameEn !== undefined) updateData.father_name_en = file.fatherNameEn;
 
     if (Object.keys(updateData).length > 0) {
         const { error } = await supabaseAdmin.from('files').update(updateData).eq('id', id);

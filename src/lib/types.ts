@@ -8,6 +8,9 @@ export interface AppFile {
   // Client Information
   clientId: string;
   clientName: string;
+  
+  // New field from PDF
+  application_no?: string | null;
 
   // Core Applicant Information
   applicantNameBn?: string | null; // Bengali Name
@@ -22,6 +25,7 @@ export interface AppFile {
   institutionId?: string | null;
   institutionName?: string; // Denormalized from institutions table
   fatherNameBn?: string | null; // Bengali
+  fatherNameEn?: string | null; // English
   motherNameBn?: string | null; // Bengali
   class?: string | null;
   roll?: number | null;
@@ -34,7 +38,6 @@ export interface AppFile {
   bill_template_name?: string; // Denormalized
   bill_template_logo_url?: string; // Denormalized
   bill_holder_name?: string | null;
-  fatherNameEn?: string | null;
   bill_customer_no?: string | null;
   bill_sanc_load?: string | null;
   bill_book_no?: string | null;

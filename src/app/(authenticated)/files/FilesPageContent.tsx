@@ -2,7 +2,7 @@
 'use client';
 
 import React, { useState, useEffect, useTransition, useMemo } from 'react';
-import { MoreHorizontal, FilePlus2, Edit, Eye, Loader2, Trash2, Check, ChevronsUpDown, Award, Bolt, Printer, ChevronDown, CalendarIcon, CheckSquare } from 'lucide-react';
+import { MoreHorizontal, FilePlus2, Edit, Eye, Loader2, Trash2, Check, ChevronsUpDown, Award, Bolt, Printer, ChevronDown, CalendarIcon, CheckSquare, UploadCloud, FileCheck2, ArrowLeft } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
   Card,
@@ -66,8 +66,7 @@ import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, Command
 import { cn } from '@/lib/utils';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 import { Checkbox } from '@/components/ui/checkbox';
-import { generateCertificateData } from '@/ai/flows/certificate-data-tool';
-import { faker } from '@faker-js/faker';
+import { extractPdfData, ExtractedPdfData } from '@/ai/flows/extract-pdf-data-flow';
 import { Badge } from '@/components/ui/badge';
 import Link from 'next/link';
 import { Separator } from '@/components/ui/separator';
@@ -78,488 +77,204 @@ import { useRouter, usePathname, useSearchParams } from 'next/navigation';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { format } from 'date-fns';
 
-// Helper to convert English digits to Bengali
-const toBengali = (str: string | number): string => {
-    const bengaliDigits = ['০', '১', '২', '৩', '৪', '৫', '৬', '৭', '৮', '৯'];
-    return String(str).replace(/[0-9]/g, (digit) => bengaliDigits[parseInt(digit)]);
-};
-
-// Helper to convert Bengali digits to English
-const toEnglish = (str: string): string => {
-    const bengaliDigits = ['০', '১', '২', '৩', '৪', '৫', '৬', '৭', '৮', '৯'];
-    return str.replace(/[০-৯]/g, (digit) => String(bengaliDigits.indexOf(digit)));
-};
-
-
-const parseDateString = (dateString: string): Date | null => {
-    if (!dateString) return null;
-    const englishDateString = toEnglish(dateString.trim());
-    // This regex supports dd/MM/yyyy, dd-MM-yyyy, and dd.MM.yyyy
-    const dateRegex = /^(?<day>\d{1,2})(?<sep>[\/\-.])(?<month>\d{1,2})\k<sep>(?<year>\d{4})$/;
-    const match = englishDateString.match(dateRegex);
-    
-    if (match?.groups) {
-        const { sep } = match.groups;
-        const formatString = `dd${sep}MM${sep}yyyy`;
-        const parsedDate = parse(englishDateString, formatString, new Date());
-        return isValid(parsedDate) ? parsedDate : null;
-    }
-    return null;
-};
-
-
-const isEnglish = (str: string) => /^[a-zA-Z\s.-]+$/.test(str);
-const isBengali = (str: string) => /^[\u0980-\u09FF\s.-]+$/.test(str);
-
-
 const fileSchema = z.object({
-  applicantName: z.string().min(1, 'আবেদনকারীর নাম আবশ্যক'),
-  clientId: z.string({ required_error: 'ক্লায়েন্ট নির্বাচন করুন' }),
-  dob: z.string().min(4, 'জন্ম তারিখ বা সাল আবশ্যক'),
-  
-  createCertificate: z.boolean().default(false),
-  createElectricityBill: z.boolean().default(false),
-
-  fatherName: z.string().optional(),
-  motherName: z.string().optional(),
-  
-  applicantNameEnglish: z.string().optional(),
-  fatherNameEnglish: z.string().optional(),
-
-}).superRefine((data, ctx) => {
-    const today = new Date();
-    let birthYear: number | null = null;
-    let age: number | null = null;
-
-    if (/^\d{4}$/.test(toEnglish(data.dob))) {
-        birthYear = parseInt(toEnglish(data.dob), 10);
-        age = today.getFullYear() - birthYear;
-    } else {
-        const parsedDate = parseDateString(data.dob);
-        if (parsedDate && isValid(parsedDate)) {
-            birthYear = parsedDate.getFullYear();
-            age = differenceInYears(today, parsedDate);
-        }
-    }
-    
-    if (!birthYear) {
-        ctx.addIssue({ code: z.ZodIssueCode.custom, message: 'সঠিক ফরম্যাটে তারিখ বা সাল দিন (DD/MM/YYYY বা YYYY)', path: ['dob'] });
-    }
-
-    if (data.createCertificate) {
-        if (!isBengali(data.applicantName)) {
-             ctx.addIssue({ code: z.ZodIssueCode.custom, message: 'প্রত্যয়নপত্রের জন্য আবেদনকারীর নাম অবশ্যই বাংলায় লিখতে হবে।', path: ['applicantName'] });
-        }
-        if (!parseDateString(data.dob)) {
-            ctx.addIssue({ code: z.ZodIssueCode.custom, message: 'প্রত্যয়নপত্রের জন্য সম্পূর্ণ জন্ম তারিখ আবশ্যক (DD/MM/YYYY)', path: ['dob'] });
-        }
-        if (!data.fatherName) {
-            ctx.addIssue({ code: z.ZodIssueCode.custom, message: 'পিতার নাম আবশ্যক', path: ['fatherName'] });
-        } else if (!isBengali(data.fatherName)) {
-             ctx.addIssue({ code: z.ZodIssueCode.custom, message: 'পিতার নাম অবশ্যই বাংলায় লিখতে হবে।', path: ['fatherName'] });
-        }
-        if (!data.motherName) {
-            ctx.addIssue({ code: z.ZodIssueCode.custom, message: 'মাতার নাম আবশ্যক', path: ['motherName'] });
-        } else if (!isBengali(data.motherName)) {
-             ctx.addIssue({ code: z.ZodIssueCode.custom, message: 'মাতার নাম অবশ্যই বাংলায় লিখতে হবে।', path: ['motherName'] });
-        }
-    }
-    
-    if (data.createElectricityBill && age !== null) {
-        if (age < 24) {
-            if (!data.fatherNameEnglish) {
-                ctx.addIssue({ code: z.ZodIssueCode.custom, message: '২৪ বছরের কম বয়সীদের জন্য পিতার ইংরেজি নাম আবশ্যক', path: ['fatherNameEnglish'] });
-            } else if (!isEnglish(data.fatherNameEnglish)) {
-                ctx.addIssue({ code: z.ZodIssueCode.custom, message: 'পিতার নাম অবশ্যই ইংরেজিতে লিখতে হবে।', path: ['fatherNameEnglish'] });
-            }
-        } else { // 24 or older
-            if (!isEnglish(data.applicantName) && !data.applicantNameEnglish) {
-                 ctx.addIssue({ code: z.ZodIssueCode.custom, message: '২৪ বছর বা তার বেশি বয়সীদের জন্য আবেদনকারীর ইংরেজি নাম আবশ্যক', path: ['applicantNameEnglish'] });
-            } else if (data.applicantNameEnglish && !isEnglish(data.applicantNameEnglish)) {
-                ctx.addIssue({ code: z.ZodIssueCode.custom, message: 'আবেদনকারীর নাম অবশ্যই ইংরেজিতে লিখতে হবে।', path: ['applicantNameEnglish'] });
-            }
-        }
-    }
+  application_no: z.string().optional(),
+  applicantNameEn: z.string().optional(),
+  applicantNameBn: z.string().optional(),
+  dob: z.string().min(1, "জন্ম তারিখ আবশ্যক"),
+  fatherNameEn: z.string().optional(),
+  fatherNameBn: z.string().optional(),
+  motherNameBn: z.string().optional(),
 });
-
-
 type FileSchema = z.infer<typeof fileSchema>;
 
-const generateRechargeHistory = (templateId: 'desco' | 'dpdc'): RechargeEntry[] => {
-    const history: RechargeEntry[] = [];
-    const numberOfEntries = faker.number.int({ min: 5, max: 20 });
-    let currentDate = new Date();
-
-    const rechargeByOptions = ['Islami Bank Bangladesh Ltd.', 'bKash', 'Mercantile Bank', 'Dutch-Bangla Bank'];
-
-    for (let i = 0; i < numberOfEntries; i++) {
-        const totalAmount = faker.helpers.rangeToNumber({ min: 4, max: 40 }) * 50; // 200 to 2000, in steps of 50
-        const energyAmount = totalAmount * faker.number.float({ min: 0.65, max: 0.95 });
-        const vat = energyAmount * 0.05;
-        const rebate = (energyAmount + vat) * -0.005;
-        
-        let demandCharge = 0;
-        if (templateId === 'desco') {
-            demandCharge = faker.datatype.boolean(0.5) ? (faker.datatype.boolean(0.5) ? 168 : 84) : 0;
-        } else {
-            demandCharge = faker.helpers.arrayElement([0, 84, 168]);
-        }
-        
-        const meterRent = templateId === 'desco' ? (faker.datatype.boolean(0.7) ? 40 : 0) : faker.helpers.arrayElement([0, 40]);
-        
-        history.push({
-            orderNo: '0000000' + faker.string.numeric(10),
-            date: formatInTimeZone(currentDate, 'Asia/Dhaka', 'yyyy-MM-dd'),
-            totalAmount,
-            energyAmount: parseFloat(energyAmount.toFixed(2)),
-            vat: parseFloat(vat.toFixed(2)),
-            rebate: parseFloat(rebate.toFixed(2)),
-            demandCharge,
-            meterRent,
-            serviceCharge: 0,
-            arearAmt: 0,
-            otherCharge: 0,
-            rechargeBy: faker.helpers.arrayElement(rechargeByOptions),
-        });
-
-        const daysToSubtract = Math.random() > 0.1
-          ? faker.number.int({ min: 15, max: 45 }) 
-          : faker.number.int({ min: 7, max: 14 }); 
-
-        currentDate = new Date(currentDate.setDate(currentDate.getDate() - daysToSubtract));
-    }
-    return history;
-};
-
-
-export const FileForm = ({
+const AddFileForm = ({
   clients,
-  institutions,
-  billAddresses,
-  billTemplates,
   onSuccess,
   onCancel,
 }: {
   clients: Client[];
-  institutions: Institution[];
-  billAddresses: BillAddress[];
-  billTemplates: BillTemplate[];
   onSuccess: () => void;
   onCancel: () => void;
 }) => {
   const { toast } = useToast();
   const [isPending, startTransition] = useTransition();
   const [isClientPopoverOpen, setClientPopoverOpen] = useState(false);
-
-  const form = useForm<FileSchema>({
-    resolver: zodResolver(fileSchema),
-    defaultValues: {
-          applicantName: '',
-          clientId: undefined,
-          dob: '',
-          createCertificate: false,
-          createElectricityBill: false,
-          fatherName: '',
-          motherName: '',
-          applicantNameEnglish: '',
-          fatherNameEnglish: '',
-        },
-  });
-
-  const watchAllFields = form.watch();
+  const [step, setStep] = useState(1);
+  const [extractedData, setExtractedData] = useState<ExtractedPdfData | null>(null);
   
-  const { applicantName, dob, createCertificate, createElectricityBill } = watchAllFields;
+  const [selectedClientId, setSelectedClientId] = useState<string | null>(null);
+  const [pdfFile, setPdfFile] = useState<File | null>(null);
 
-  const isCertificateEnabled = useMemo(() => {
-    return isBengali(applicantName) && parseDateString(dob) !== null;
-  }, [applicantName, dob]);
-  
-  const applicantAge = useMemo(() => {
-    if (!dob) return null;
-    const today = new Date();
-    if (/^\d{4}$/.test(toEnglish(dob))) {
-        const birthYear = parseInt(toEnglish(dob), 10);
-        return today.getFullYear() - birthYear;
+  const fileInputRef = React.useRef<HTMLInputElement>(null);
+
+  const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (file && file.type === 'application/pdf') {
+      setPdfFile(file);
+    } else {
+      toast({ variant: 'destructive', title: "ভুল ফাইল টাইপ", description: "অনুগ্রহ করে একটি PDF ফাইল আপলোড করুন।" });
+      setPdfFile(null);
     }
-    const parsedDob = parseDateString(dob);
-    if(parsedDob && isValid(parsedDob)) {
-        return differenceInYears(today, parsedDob);
+  };
+
+  const handleExtract = () => {
+    if (!selectedClientId) {
+      toast({ variant: 'destructive', title: "ক্লায়েন্ট নির্বাচন করুন", description: "অনুগ্রহ করে ফাইল আপলোড করার আগে একজন ক্লায়েন্ট নির্বাচন করুন।" });
+      return;
     }
-    return null;
-  }, [dob]);
-
-  const isBillEnabled = applicantAge !== null;
-
-  // This determines if we need to ask for the applicant's name in English
-  const showApplicantNameEnglish = useMemo(() => {
-    return createElectricityBill && applicantAge !== null && applicantAge >= 24 && !isEnglish(applicantName);
-  }, [createElectricityBill, applicantAge, applicantName]);
-
-  // This determines if we need to ask for the father's name in English
-  const showFatherNameEnglish = useMemo(() => {
-      return createElectricityBill && applicantAge !== null && applicantAge < 24;
-  }, [createElectricityBill, applicantAge]);
-
-
-  // Reset checkboxes if conditions are no longer met
-  useEffect(() => {
-    if (!isCertificateEnabled && createCertificate) {
-        form.setValue('createCertificate', false);
+    if (!pdfFile) {
+      toast({ variant: 'destructive', title: "PDF ফাইল দিন", description: "অনুগ্রহ করে ডেটা এক্সট্র্যাক্ট করার জন্য একটি PDF ফাইল আপলোড করুন।" });
+      return;
     }
-  }, [isCertificateEnabled, createCertificate, form]);
 
-  useEffect(() => {
-    if (!isBillEnabled && createElectricityBill) {
-        form.setValue('createElectricityBill', false);
-    }
-  }, [isBillEnabled, createElectricityBill, form]);
-
-
-  const onSubmit = (values: FileSchema) => {
     startTransition(async () => {
       try {
-        const selectedClient = clients.find(c => c.id === values.clientId);
-        if (!selectedClient) {
-            toast({ variant: 'destructive', title: 'ত্রুটি', description: 'ক্লায়েন্ট খুঁজে পাওয়া যায়নি।' });
-            return;
-        }
-
-        const dobForDb = parseDateString(values.dob) 
-            ? formatInTimeZone(parseDateString(values.dob)!, 'Asia/Dhaka', 'yyyy-MM-dd')
-            : values.dob;
-
-        const fileData: Partial<AppFile> = { 
-            applicantNameBn: isBengali(values.applicantName) ? values.applicantName : null,
-            applicantNameEn: isEnglish(values.applicantName) ? values.applicantName : (showApplicantNameEnglish ? values.applicantNameEnglish : null),
-            clientId: values.clientId,
-            clientName: selectedClient.name,
-            dob: dobForDb,
-            hasCertificate: values.createCertificate,
-            hasElectricityBill: values.createElectricityBill,
-            createdAt: new Date().toISOString(),
-        };
-        
-        let toastMessages = ['নতুন ফাইলটি তালিকায় যোগ করা হয়েছে।'];
-
-        if(values.createCertificate && applicantAge !== null) {
-            if (!institutions || institutions.length === 0) {
-                toast({ variant: 'destructive', title: 'কোনো প্রতিষ্ঠান পাওয়া যায়নি', description: 'প্রত্যয়নপত্র তৈরির আগে অনুগ্রহ করে কমপক্ষে একটি প্রতিষ্ঠান যোগ করুন।' });
-                return;
+        const reader = new FileReader();
+        reader.readAsDataURL(pdfFile);
+        reader.onload = async () => {
+            const base64Pdf = reader.result as string;
+            const data = await extractPdfData({ pdfDataUri: base64Pdf });
+            if (!data.dob) {
+                toast({ variant: "destructive", title: "ডেটা এক্সট্র্যাক্ট ব্যর্থ", description: "PDF থেকে জন্ম তারিখ বের করা যায়নি। অনুগ্রহ করে ম্যানুয়ালি পূরণ করুন।" });
             }
-                const randomInstitution = institutions[Math.floor(Math.random() * institutions.length)];
-                
-                const academicData = await generateCertificateData({ age: applicantAge, date: new Date().toISOString() });
-                
-                fileData.fatherNameBn = values.fatherName;
-                fileData.motherNameBn = values.motherName;
-                fileData.institutionId = randomInstitution.id;
-                fileData.class = academicData.class;
-                fileData.roll = Number(academicData.roll);
-                fileData.certificateDate = academicData.certificateDate;
-                fileData.sessionYear = academicData.sessionYear;
-                fileData.certificate_status = 'প্রিন্ট হয়নি';
-                
-                toastMessages.push('সংশ্লিষ্ট প্রত্যয়নপত্র সফলভাবে তৈরি করা হয়েছে।');
-        }
-
-        if(values.createElectricityBill && applicantAge !== null) {
-            const activeTemplateIds = billTemplates.filter(t => t.isActive).map(t => t.id);
-            const activeAddresses = billAddresses.filter(addr => activeTemplateIds.includes(addr.templateId));
-            
-            if (activeAddresses.length === 0) {
-                  toast({ variant: 'destructive', title: 'কোনো সক্রিয় বিলের ঠিকানা পাওয়া যায়নি', description: 'বিদ্যুৎ বিল তৈরির আগে অনুগ্রহ করে কমপক্ষে একটি সক্রিয় টেমপ্লেটের সাথে ঠিকানা যোগ করুন।' });
-                  return;
-            } 
-            
-                let billHolderName = '';
-                if(applicantAge < 24) {
-                    billHolderName = values.fatherNameEnglish!;
-                    fileData.fatherNameEn = values.fatherNameEnglish;
-                } else {
-                    // If applicant name is already in english, use it. Otherwise use the separate english name field.
-                    billHolderName = isEnglish(values.applicantName) ? values.applicantName : values.applicantNameEnglish!;
-                }
-
-                const randomAddress = activeAddresses[Math.floor(Math.random() * activeAddresses.length)];
-                
-                fileData.bill_holder_name = billHolderName.toUpperCase();
-                fileData.bill_customer_no = faker.string.numeric(8);
-                fileData.bill_sanc_load = faker.helpers.arrayElement(['1 KW', '2 KW', '3 KW']);
-                fileData.bill_book_no = `${faker.helpers.arrayElement(['A','B','C','D','E','F'])}${faker.string.numeric(2)}`;
-                fileData.bill_type = 'Pre-paid';
-                fileData.bill_tariff = 'A (Residential)';
-                fileData.bill_account_no = faker.string.numeric(11);
-                fileData.bill_meter_no = faker.string.numeric(12);
-                fileData.bill_s_and_d = randomAddress.division || 'Khilkhet';
-                fileData.bill_address = { 
-                    dagNo: randomAddress.dagNo, 
-                    area: randomAddress.area,
-                    division: randomAddress.division,
-                    address: randomAddress.address,
-                };
-                fileData.bill_template_id = randomAddress.templateId;
-                fileData.bill_recharge_history = generateRechargeHistory(randomAddress.templateId as 'desco' | 'dpdc');
-                fileData.bill_status = 'প্রিন্ট হয়নি';
-                
-                toastMessages.push('সংশ্লিষ্ট বিদ্যুৎ বিল সফলভাবে তৈরি করা হয়েছে।');
-        }
-        
-        await addFile(fileData);
-
-        onSuccess();
-        toast({
-            title: 'সফলভাবে তৈরি হয়েছে',
-            description: toastMessages.join(' '),
-            className: 'bg-accent text-accent-foreground',
-            duration: 7000,
-        });
-        
+            setExtractedData(data);
+            setStep(2); // Move to confirmation step
+        };
       } catch (error: any) {
-        toast({ variant: 'destructive', title: 'ত্রুটি', description: error.message || `ফাইল যোগ করতে সমস্যা হয়েছে।` });
+        toast({ variant: 'destructive', title: "এক্সট্র্যাক্ট ব্যর্থ", description: error.message || "PDF থেকে ডেটা এক্সট্র্যাক্ট করা যায়নি।" });
       }
     });
   };
+  
+  const form = useForm<FileSchema>({
+    resolver: zodResolver(fileSchema),
+  });
+
+  useEffect(() => {
+    if (extractedData) {
+      form.reset({
+        application_no: extractedData.application_no ?? '',
+        applicantNameEn: extractedData.applicant_name_en ?? '',
+        applicantNameBn: extractedData.applicant_name_bn ?? '',
+        dob: extractedData.dob ?? '',
+        fatherNameEn: extractedData.father_name_en ?? '',
+        fatherNameBn: extractedData.father_name_bn ?? '',
+        motherNameBn: extractedData.mother_name_bn ?? '',
+      });
+    }
+  }, [extractedData, form]);
+
+  const onSubmit = (values: FileSchema) => {
+    startTransition(async () => {
+        if(!selectedClientId) return;
+        
+        try {
+            const selectedClient = clients.find(c => c.id === selectedClientId);
+             const fileData: Partial<AppFile> = { 
+                clientId: selectedClientId,
+                clientName: selectedClient!.name,
+                application_no: values.application_no,
+                applicantNameBn: values.applicantNameBn,
+                applicantNameEn: values.applicantNameEn,
+                dob: values.dob,
+                fatherNameBn: values.fatherNameBn,
+                fatherNameEn: values.fatherNameEn,
+                motherNameBn: values.motherNameBn,
+                hasCertificate: false, // Default values
+                hasElectricityBill: false,
+                createdAt: new Date().toISOString(),
+             };
+            await addFile(fileData);
+            toast({
+                title: 'সফলভাবে তৈরি হয়েছে',
+                description: 'নতুন ফাইলটি তালিকায় যোগ করা হয়েছে।',
+                className: 'bg-accent text-accent-foreground',
+            });
+            onSuccess();
+        } catch (error:any) {
+             toast({ variant: 'destructive', title: 'ত্রুটি', description: error.message || `ফাইল যোগ করতে সমস্যা হয়েছে।` });
+        }
+    });
+  };
+  
+
+  if (step === 2) {
+    return (
+       <Form {...form}>
+         <form onSubmit={form.handleSubmit(onSubmit)}>
+            <ScrollArea className="h-[65vh] pr-6">
+                 <div className="space-y-4">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <FormField control={form.control} name="application_no" render={({ field }) => (<FormItem><FormLabel>আবেদন পত্র নম্বর</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>)} />
+                        <FormField control={form.control} name="dob" render={({ field }) => (<FormItem><FormLabel>জন্ম তারিখ (DD/MM/YYYY)</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>)} />
+                        <FormField control={form.control} name="applicantNameBn" render={({ field }) => (<FormItem><FormLabel>নাম (বাংলা)</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>)} />
+                        <FormField control={form.control} name="applicantNameEn" render={({ field }) => (<FormItem><FormLabel>নাম (ইংরেজি)</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>)} />
+                        <FormField control={form.control} name="fatherNameBn" render={({ field }) => (<FormItem><FormLabel>পিতার নাম (বাংলা)</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>)} />
+                        <FormField control={form.control} name="fatherNameEn" render={({ field }) => (<FormItem><FormLabel>পিতার নাম (ইংরেজি)</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>)} />
+                        <FormField control={form.control} name="motherNameBn" render={({ field }) => (<FormItem className="md:col-span-2"><FormLabel>মাতার নাম (বাংলা)</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>)} />
+                    </div>
+                </div>
+            </ScrollArea>
+             <DialogFooter className="pt-4 border-t">
+                 <Button type="button" variant="outline" onClick={() => setStep(1)}><ArrowLeft /> পেছনে যান</Button>
+                 <Button type="submit" className="bg-accent text-accent-foreground hover:bg-accent/90" disabled={isPending}>
+                    {isPending ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <FileCheck2 />}
+                    ফাইল তৈরি করুন
+                 </Button>
+            </DialogFooter>
+         </form>
+       </Form>
+    )
+  }
 
   return (
-    <Form {...form}>
-      <form onSubmit={form.handleSubmit(onSubmit)}>
-        <ScrollArea className="h-[65vh] pr-6">
-            <div className="space-y-4">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <FormField control={form.control} name="applicantName" render={({ field }) => (
-                        <FormItem className="md:col-span-2">
-                        <FormLabel>আবেদনকারীর নাম</FormLabel>
-                        <FormControl><Input placeholder="বাংলা বা ইংরেজিতে সম্পূর্ণ নাম" {...field} /></FormControl>
-                        <FormMessage />
-                        </FormItem>
-                    )} />
-                    <FormField control={form.control} name="dob" render={({ field }) => (
-                        <FormItem>
-                            <FormLabel>জন্ম তারিখ বা সাল</FormLabel>
-                            <FormControl><Input placeholder="DD/MM/YYYY বা YYYY" {...field} /></FormControl>
-                            <FormDescription>বাংলা বা ইংরেজিতে ইনপুট দিন।</FormDescription>
-                            <FormMessage />
-                        </FormItem>
-                    )} />
-                    <FormField control={form.control} name="clientId" render={({ field }) => (
-                        <FormItem className="flex flex-col pt-2">
-                        <FormLabel>ক্লায়েন্টের নাম</FormLabel>
-                            <Popover open={isClientPopoverOpen} onOpenChange={setClientPopoverOpen}>
-                                <PopoverTrigger asChild>
-                                    <FormControl>
-                                    <Button variant="outline" role="combobox" className={cn("w-full justify-between", !field.value && "text-muted-foreground")}>
-                                        {field.value ? clients.find((client) => client.id === field.value)?.name : "ক্লায়েন্ট নির্বাচন করুন"}
-                                        <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
-                                    </Button>
-                                    </FormControl>
-                                </PopoverTrigger>
-                                <PopoverContent className="w-[--radix-popover-trigger-width] p-0">
-                                    <Command>
-                                        <CommandInput placeholder="ক্লায়েন্ট খুঁজুন..." />
-                                        <CommandEmpty>কোনো ক্লায়েন্ট পাওয়া যায়নি।</CommandEmpty>
-                                        <CommandList>
-                                            <CommandGroup>
-                                            {clients.map((client) => (
-                                                <CommandItem value={client.name} key={client.id} onSelect={() => {
-                                                    form.setValue("clientId", client.id);
-                                                    setClientPopoverOpen(false);
-                                                }}>
-                                                <Check className={cn("mr-2 h-4 w-4", client.id === field.value ? "opacity-100" : "opacity-0")} />
-                                                {client.name}
-                                                </CommandItem>
-                                            ))}
-                                            </CommandGroup>
-                                        </CommandList>
-                                    </Command>
-                                </PopoverContent>
-                            </Popover>
-                        <FormMessage />
-                        </FormItem>
-                    )} />
-                </div>
-                
-                <Separator />
-                
-                <div className="space-y-4 pt-2">
-                    <h3 className="text-base font-medium">কোন ডকুমেন্ট তৈরি করতে চান?</h3>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                         <FormField control={form.control} name="createCertificate" render={({ field }) => (
-                            <FormItem className="flex flex-row items-start space-x-3 space-y-0 rounded-md border p-4 data-[disabled=true]:opacity-50" data-disabled={!isCertificateEnabled}>
-                            <FormControl><Checkbox checked={field.value} onCheckedChange={field.onChange} disabled={!isCertificateEnabled} /></FormControl>
-                            <div className="space-y-1 leading-none">
-                                <FormLabel className={cn(!isCertificateEnabled && "text-muted-foreground")}>প্রত্যয়নপত্র তৈরি করুন</FormLabel>
-                                <FormDescription className={cn(isCertificateEnabled ? 'hidden' : 'block')}>
-                                    নাম বাংলায় এবং জন্ম তারিখ সম্পূর্ণ দিন।
-                                </FormDescription>
-                            </div>
-                            </FormItem>
-                        )} />
-                         <FormField control={form.control} name="createElectricityBill" render={({ field }) => (
-                            <FormItem className="flex flex-row items-start space-x-3 space-y-0 rounded-md border p-4 data-[disabled=true]:opacity-50" data-disabled={!isBillEnabled}>
-                            <FormControl><Checkbox checked={field.value} onCheckedChange={field.onChange} disabled={!isBillEnabled} /></FormControl>
-                            <div className="space-y-1 leading-none">
-                                <FormLabel className={cn(!isBillEnabled && "text-muted-foreground")}>বিদ্যুৎ বিল তৈরি করুন</FormLabel>
-                                <FormDescription className={cn(isBillEnabled ? 'hidden' : 'block')}>
-                                    জন্ম তারিখ বা সাল দিন।
-                                </FormDescription>
-                            </div>
-                            </FormItem>
-                        )} />
-                    </div>
+    <div className="space-y-6 py-4">
+      <div className="flex flex-col space-y-2">
+        <Label>ক্লায়েন্টের নাম</Label>
+        <Popover open={isClientPopoverOpen} onOpenChange={setClientPopoverOpen}>
+            <PopoverTrigger asChild>
+                <Button variant="outline" role="combobox" className={cn("w-full justify-between", !selectedClientId && "text-muted-foreground")}>
+                    {selectedClientId ? clients.find((client) => client.id === selectedClientId)?.name : "ক্লায়েন্ট নির্বাচন করুন"}
+                    <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                </Button>
+            </PopoverTrigger>
+            <PopoverContent className="w-[--radix-popover-trigger-width] p-0">
+                <Command>
+                    <CommandInput placeholder="ক্লায়েন্ট খুঁজুন..." />
+                    <CommandEmpty>কোনো ক্লায়েন্ট পাওয়া যায়নি।</CommandEmpty>
+                    <CommandList>
+                        <CommandGroup>
+                        {clients.map((client) => (
+                            <CommandItem value={client.name} key={client.id} onSelect={() => {
+                                setSelectedClientId(client.id);
+                                setClientPopoverOpen(false);
+                            }}>
+                            <Check className={cn("mr-2 h-4 w-4", client.id === selectedClientId ? "opacity-100" : "opacity-0")} />
+                            {client.name}
+                            </CommandItem>
+                        ))}
+                        </CommandGroup>
+                    </CommandList>
+                </Command>
+            </PopoverContent>
+        </Popover>
+      </div>
 
-                    {createCertificate && (
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 p-4 border rounded-md">
-                            <h3 className="md:col-span-2 text-sm font-medium text-muted-foreground -mb-2">প্রত্যয়নপত্রের জন্য তথ্য (বাংলা)</h3>
-                            <FormField control={form.control} name="fatherName" render={({ field }) => (
-                                <FormItem>
-                                <FormLabel>পিতার নাম</FormLabel>
-                                <FormControl><Input placeholder="পিতার সম্পূর্ণ নাম" {...field} /></FormControl>
-                                <FormMessage />
-                                </FormItem>
-                            )} />
-                            <FormField control={form.control} name="motherName" render={({ field }) => (
-                                <FormItem>
-                                <FormLabel>মাতার নাম</FormLabel>
-                                <FormControl><Input placeholder="মাতার সম্পূর্ণ নাম" {...field} /></FormControl>
-                                <FormMessage />
-                                </FormItem>
-                            )} />
-                        </div>
-                    )}
-                    
-                    {(showApplicantNameEnglish || showFatherNameEnglish) && (
-                        <div className="p-4 border rounded-md space-y-4">
-                            <h3 className="text-sm font-medium text-muted-foreground">বিদ্যুৎ বিলের জন্য তথ্য (ইংরেজি)</h3>
-                             {showFatherNameEnglish && (
-                                <FormField control={form.control} name="fatherNameEnglish" render={({ field }) => (
-                                    <FormItem><FormLabel>পিতার নাম</FormLabel>
-                                    <FormControl><Input placeholder="Father's Full Name" {...field} /></FormControl>
-                                    <FormMessage />
-                                    </FormItem>
-                                )} />
-                            )}
-                            {showApplicantNameEnglish && (
-                                <FormField control={form.control} name="applicantNameEnglish" render={({ field }) => (
-                                    <FormItem><FormLabel>আবেদনকারীর নাম</FormLabel>
-                                    <FormControl><Input placeholder="Applicant's Full Name" {...field} /></FormControl>
-                                    <FormMessage />
-                                    </FormItem>
-                                )} />
-                            )}
-                        </div>
-                    )}
-                </div>
-            </div>
-        </ScrollArea>
-        <DialogFooter className="pt-4 border-t">
-          <DialogClose asChild><Button type="button" variant="outline" onClick={onCancel}>বাতিল</Button></DialogClose>
-          <Button type="submit" className="bg-accent text-accent-foreground hover:bg-accent/90" disabled={isPending}>
-            {isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-            ফাইল তৈরি করুন
-          </Button>
-        </DialogFooter>
-      </form>
-    </Form>
+      <div className="flex flex-col space-y-2">
+        <Label>আবেদনপত্র (PDF)</Label>
+        <Input type="file" accept="application/pdf" ref={fileInputRef} onChange={handleFileChange} />
+        {pdfFile && <p className="text-sm text-muted-foreground">ফাইল নির্বাচিত: {pdfFile.name}</p>}
+      </div>
+
+      <DialogFooter className="pt-4 border-t">
+        <DialogClose asChild><Button type="button" variant="outline" onClick={onCancel}>বাতিল</Button></DialogClose>
+        <Button onClick={handleExtract} className="bg-accent text-accent-foreground hover:bg-accent/90" disabled={isPending || !pdfFile || !selectedClientId}>
+          {isPending ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <UploadCloud />}
+          এক্সট্র্যাক্ট ও রিভিউ
+        </Button>
+      </DialogFooter>
+    </div>
   );
 };
 
@@ -572,6 +287,8 @@ const editFileSchema = z.object({
   institutionId: z.string().optional(),
   billAddressId: z.string().optional(),
   billTemplateId: z.string().optional(),
+  application_no: z.string().optional(),
+  fatherNameEn: z.string().optional(),
 });
 type EditFileSchema = z.infer<typeof editFileSchema>;
 
@@ -618,6 +335,8 @@ const EditFileForm = ({
             institutionId: file.institutionId ?? undefined,
             billAddressId: findBillAddressId(),
             billTemplateId: file.bill_template_id ?? undefined,
+            application_no: file.application_no ?? '',
+            fatherNameEn: file.fatherNameEn ?? '',
         },
     });
 
@@ -626,8 +345,10 @@ const EditFileForm = ({
             try {
                 const fileUpdates: Partial<AppFile> = {};
                 
+                if(file.application_no !== values.application_no) fileUpdates.application_no = values.application_no;
                 if(file.applicantNameBn !== values.applicantNameBn) fileUpdates.applicantNameBn = values.applicantNameBn;
                 if(file.applicantNameEn !== values.applicantNameEn) fileUpdates.applicantNameEn = values.applicantNameEn;
+                if(file.fatherNameEn !== values.fatherNameEn) fileUpdates.fatherNameEn = values.fatherNameEn;
                 if(file.clientId !== values.clientId) {
                     const selectedClient = clients.find(c => c.id === values.clientId);
                     fileUpdates.clientId = values.clientId;
@@ -685,6 +406,11 @@ const EditFileForm = ({
     return (
         <Form {...form}>
         <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+            {file.application_no && <FormField control={form.control} name="application_no" render={({ field }) => (
+                <FormItem><FormLabel>আবেদন পত্র নম্বর</FormLabel>
+                <FormControl><Input {...field} /></FormControl>
+                <FormMessage /></FormItem>
+            )} />}
             {file.applicantNameBn && <FormField control={form.control} name="applicantNameBn" render={({ field }) => (
                 <FormItem><FormLabel>আবেদনকারীর নাম (বাংলা)</FormLabel>
                 <FormControl><Input {...field} /></FormControl>
@@ -692,6 +418,11 @@ const EditFileForm = ({
             )} />}
             {file.applicantNameEn && <FormField control={form.control} name="applicantNameEn" render={({ field }) => (
                 <FormItem><FormLabel>আবেদনকারীর নাম (ইংরেজি)</FormLabel>
+                <FormControl><Input {...field} /></FormControl>
+                <FormMessage /></FormItem>
+            )} />}
+             {file.fatherNameEn && <FormField control={form.control} name="fatherNameEn" render={({ field }) => (
+                <FormItem><FormLabel>পিতার নাম (ইংরেজি)</FormLabel>
                 <FormControl><Input {...field} /></FormControl>
                 <FormMessage /></FormItem>
             )} />}
@@ -1131,6 +862,7 @@ export default function FilesPageContent({
                     <div>
                         <h3 className="font-semibold mb-2 text-base">ফাইলের তথ্য</h3>
                         <div className="grid grid-cols-2 gap-x-4 gap-y-1">
+                            {dialogState.file.application_no && <><p><strong>আবেদন নং:</strong></p><p>{dialogState.file.application_no}</p></>}
                             <p><strong>আবেদনকারীর নাম:</strong></p><p>{displayName}</p>
                             <p><strong>জন্ম তারিখ/সাল:</strong></p><p>{formatDobForDisplay(dialogState.file.dob)}</p>
                             <p><strong>ক্লায়েন্টের নাম:</strong></p><p>{dialogState.file.clientName}</p>
@@ -1190,14 +922,7 @@ export default function FilesPageContent({
                 />
             );
         case 'add':
-             return <FileForm 
-                clients={clients} 
-                institutions={institutions}
-                billAddresses={billAddresses}
-                billTemplates={billTemplates}
-                onSuccess={handleSuccess} 
-                onCancel={handleDialogClose} 
-            />;
+             return <AddFileForm clients={clients} onSuccess={handleSuccess} onCancel={handleDialogClose} />;
         default:
             return null;
     }
@@ -1577,7 +1302,7 @@ export default function FilesPageContent({
           <DialogContent className="sm:max-w-lg">
             <DialogHeader>
               <DialogTitle>{getDialogTitle()}</DialogTitle>
-              {dialogState.mode === 'add' && <DialogDescription>নতুন ফাইল তৈরি করুন এবং ঐচ্ছিকভাবে প্রত্যয়নপত্র ও বিদ্যুৎ বিল যোগ করুন.</DialogDescription>}
+              {dialogState.mode === 'add' && <DialogDescription>একটি PDF ফাইল আপলোড করে স্বয়ংক্রিয়ভাবে ফাইল তৈরি করুন।</DialogDescription>}
                {dialogState.mode === 'edit' && <DialogDescription>ফাইলের তথ্য এবং এর সাথে যুক্ত ডকুমেন্টের বিবরণ আপডেট করুন.</DialogDescription>}
             </DialogHeader>
             {renderDialogContent()}
