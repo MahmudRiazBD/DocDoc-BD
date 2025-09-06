@@ -52,18 +52,16 @@ const checkRateLimit = () => {
 // Local parser using Regex
 const localParse = (text: string): Partial<ExtractedPdfData> => {
     // This function tries to find a label and captures the text on the same line until a newline.
-    // The [\s\S]*? part is a non-greedy match for any character including newlines, allowing it
-    // to find the label even if it's not at the start of a line. The ([^\n\r]+) part captures the value.
     const extract = (regex: RegExp) => (regex.exec(text)?.[1] || '').trim() || undefined;
 
     const data: Partial<ExtractedPdfData> = {
-        application_no: extract(/আবেদন পত্র নম্বর:?\s*(\d+)/),
-        applicant_name_bn: extract(/নাম বাংলায় \(স্পষ্ট অক্ষরে\)[\s\S]*?([^\n\r]+)/),
-        applicant_name_en: extract(/Name in English \(Capital Letters\)[\s\S]*?([^\n\r]+)/),
-        dob: extract(/জন্ম তারিখ[\s\S]*?([^\n\r]+)/),
-        father_name_bn: extract(/পিতার নাম বাংলায় \(স্পষ্ট অক্ষরে\)[\s\S]*?([^\n\r]+)/),
-        father_name_en: extract(/Father's name in English \(Capital Letters\)[\s\S]*?([^\n\r]+)/),
-        mother_name_bn: extract(/মাতার নাম বাংলায় \(স্পষ্ট অক্ষরে\)[\s\S]*?([^\n\r]+)/),
+        application_no: extract(/আবেদন পত্র নম্বর:?\s*([০-৯]+)/),
+        applicant_name_bn: extract(/নাম বাংলায় \(স্পষ্ট অক্ষরে\)[\s\S]*?([^\n\rA-Za-z0-9]+)/),
+        applicant_name_en: extract(/Name in English \(Capital Letters\)[\s\S]*?([A-Za-z\s.]+)/),
+        dob: extract(/জন্ম তারিখ[\s\S]*?(\d{2}\/\d{2}\/\d{4})/),
+        father_name_bn: extract(/পিতার নাম বাংলায় \(স্পষ্ট অক্ষরে\)[\s\S]*?([^\n\rA-Za-z0-9]+)/),
+        father_name_en: extract(/Father's name in English \(Capital Letters\)[\s\S]*?([A-Za-z\s.]+)/),
+        mother_name_bn: extract(/মাতার নাম বাংলায় \(স্পষ্ট অক্ষরে\)[\s\S]*?([^\n\rA-Za-z0-9]+)/),
     };
     
     // Return data only if at least one field was found
@@ -119,7 +117,7 @@ export async function extractPdfData(input: PdfInput): Promise<ExtractedPdfData>
   }
 
   // 2. If local parsing fails, fall back to AI
-  console.log("Local parsing failed, falling back to AI model.");
+  console.log("Local parsing failed or missing required fields, falling back to AI model.");
   checkRateLimit(); // Check rate limit before calling AI
 
   const { output } = await extractionPrompt({ text });

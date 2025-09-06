@@ -34,7 +34,7 @@ import {
   DropdownMenuSubContent,
 } from '@/components/ui/dropdown-menu';
 import { AppFile, Client, RechargeEntry, BillAddress, BillTemplate, Institution } from '@/lib/types';
-import { isValid, parse, differenceInYears } from 'date-fns';
+import { isValid, parse } from 'date-fns';
 import { toDate, formatInTimeZone } from 'date-fns-tz';
 
 import {
@@ -75,7 +75,7 @@ import { Calendar } from '@/components/ui/calendar';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useRouter, usePathname, useSearchParams } from 'next/navigation';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { format } from 'date-fns';
+import { format, parseISO } from 'date-fns';
 import { Label } from '@/components/ui/label';
 
 const fileSchema = z.object({
@@ -88,6 +88,26 @@ const fileSchema = z.object({
   motherNameBn: z.string().optional(),
 });
 type FileSchema = z.infer<typeof fileSchema>;
+
+const toEnglishDigits = (str: string | undefined | null): string => {
+    if (!str) return '';
+    const bengaliDigits = ['০', '১', '২', '৩', '৪', '৫', '৬', '৭', '৮', '৯'];
+    return str.replace(/[০-৯]/g, (digit) => bengaliDigits.indexOf(digit).toString());
+};
+
+const parseBengaliDate = (bengaliDate: string | undefined | null): string => {
+    if (!bengaliDate) return '';
+    try {
+        const englishDateStr = toEnglishDigits(bengaliDate);
+        const parsedDate = parse(englishDateStr, 'dd/MM/yyyy', new Date());
+        if (isValid(parsedDate)) {
+            return format(parsedDate, 'yyyy-MM-dd');
+        }
+        return bengaliDate; // return original if parsing fails
+    } catch (e) {
+        return bengaliDate; // return original on error
+    }
+}
 
 export const AddFileForm = ({
   clients,
@@ -136,8 +156,9 @@ export const AddFileForm = ({
         reader.onload = async () => {
             const base64Pdf = reader.result as string;
             const data = await extractPdfData({ pdfDataUri: base64Pdf });
-            if (!data.dob) {
-                toast({ variant: "destructive", title: "ডেটা এক্সট্র্যাক্ট ব্যর্থ", description: "PDF থেকে জন্ম তারিখ বের করা যায়নি। অনুগ্রহ করে ম্যানুয়ালি পূরণ করুন।" });
+            
+            if (!data.applicant_name_bn || !data.dob) {
+                 toast({ variant: "destructive", title: "ডেটা এক্সট্র্যাক্ট ব্যর্থ", description: "PDF থেকে প্রয়োজনীয় ডেটা (নাম/জন্ম তারিখ) বের করা যায়নি। অনুগ্রহ করে ম্যানুয়ালি পূরণ করুন।" });
             }
             setExtractedData(data);
             setStep(2); // Move to confirmation step
@@ -164,10 +185,10 @@ export const AddFileForm = ({
   useEffect(() => {
     if (extractedData) {
       form.reset({
-        application_no: extractedData.application_no ?? '',
+        application_no: toEnglishDigits(extractedData.application_no),
         applicantNameEn: extractedData.applicant_name_en ?? '',
         applicantNameBn: extractedData.applicant_name_bn ?? '',
-        dob: extractedData.dob ?? '',
+        dob: parseBengaliDate(extractedData.dob),
         fatherNameEn: extractedData.father_name_en ?? '',
         fatherNameBn: extractedData.father_name_bn ?? '',
         motherNameBn: extractedData.mother_name_bn ?? '',
@@ -217,7 +238,7 @@ export const AddFileForm = ({
                  <div className="space-y-4">
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <FormField control={form.control} name="application_no" render={({ field }) => (<FormItem><FormLabel>আবেদন পত্র নম্বর</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>)} />
-                        <FormField control={form.control} name="dob" render={({ field }) => (<FormItem><FormLabel>জন্ম তারিখ (DD/MM/YYYY)</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>)} />
+                        <FormField control={form.control} name="dob" render={({ field }) => (<FormItem><FormLabel>জন্ম তারিখ (YYYY-MM-DD)</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>)} />
                         <FormField control={form.control} name="applicantNameBn" render={({ field }) => (<FormItem><FormLabel>নাম (বাংলা)</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>)} />
                         <FormField control={form.control} name="applicantNameEn" render={({ field }) => (<FormItem><FormLabel>নাম (ইংরেজি)</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>)} />
                         <FormField control={form.control} name="fatherNameBn" render={({ field }) => (<FormItem><FormLabel>পিতার নাম (বাংলা)</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>)} />
@@ -418,27 +439,27 @@ const EditFileForm = ({
         <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
             {file.application_no && <FormField control={form.control} name="application_no" render={({ field }) => (
                 <FormItem><FormLabel>আবেদন পত্র নম্বর</FormLabel>
-                <FormControl><Input {...field} /></FormControl>
+                <FormControl><Input {...field} value={field.value ?? ''} /></FormControl>
                 <FormMessage /></FormItem>
             )} />}
             {file.applicantNameBn && <FormField control={form.control} name="applicantNameBn" render={({ field }) => (
                 <FormItem><FormLabel>আবেদনকারীর নাম (বাংলা)</FormLabel>
-                <FormControl><Input {...field} /></FormControl>
+                <FormControl><Input {...field} value={field.value ?? ''} /></FormControl>
                 <FormMessage /></FormItem>
             )} />}
             {file.applicantNameEn && <FormField control={form.control} name="applicantNameEn" render={({ field }) => (
                 <FormItem><FormLabel>আবেদনকারীর নাম (ইংরেজি)</FormLabel>
-                <FormControl><Input {...field} /></FormControl>
+                <FormControl><Input {...field} value={field.value ?? ''} /></FormControl>
                 <FormMessage /></FormItem>
             )} />}
              {file.fatherNameEn && <FormField control={form.control} name="fatherNameEn" render={({ field }) => (
                 <FormItem><FormLabel>পিতার নাম (ইংরেজি)</FormLabel>
-                <FormControl><Input {...field} /></FormControl>
+                <FormControl><Input {...field} value={field.value ?? ''} /></FormControl>
                 <FormMessage /></FormItem>
             )} />}
             <FormField control={form.control} name="dob" render={({ field }) => (
                 <FormItem><FormLabel>জন্ম তারিখ বা সাল</FormLabel>
-                <FormControl><Input placeholder="DD/MM/YYYY বা YYYY" {...field} /></FormControl>
+                <FormControl><Input placeholder="DD/MM/YYYY বা YYYY" {...field} value={field.value ?? ''} /></FormControl>
                 <FormMessage /></FormItem>
             )} />
             <FormField control={form.control} name="clientId" render={({ field }) => (
@@ -781,11 +802,10 @@ export default function FilesPageContent({
     const isoDateRegex = /^(?<year>\d{4})-(?<month>\d{2})-(?<day>\d{2})/;
     const match = dob.match(isoDateRegex);
     if (match?.groups) {
-        const { day, month, year } = match.groups;
-        return toBengali(`${day}/${month}/${year}`);
+        return `${match.groups.day}/${match.groups.month}/${match.groups.year}`;
     }
     // Fallback for YYYY or other formats
-    return toBengali(dob);
+    return dob;
   };
   
    const renderFilterInput = () => {
@@ -881,7 +901,7 @@ export default function FilesPageContent({
                                 {dialogState.file.hasCertificate ? <Badge variant="secondary">প্রত্যয়নপত্র</Badge> : <Badge variant="outline">প্রত্যয়নপত্র নেই</Badge>}
                                 {dialogState.file.hasElectricityBill ? <Badge variant="secondary">বিদ্যুৎ বিল</Badge> : <Badge variant="outline">বিদ্যুৎ বিল নেই</Badge>}
                             </div>
-                            <p><strong>তৈরির তারিখ:</strong></p><p>{dialogState.file.createdAt ? formatInTimeZone(parse(dialogState.file.createdAt, "yyyy-MM-dd'T'HH:mm:ss.SSSSSSxxx", new Date()), 'Asia/Dhaka', 'PPpp') : ''}</p>
+                            <p><strong>তৈরির তারিখ:</strong></p><p>{dialogState.file.createdAt ? formatInTimeZone(parseISO(dialogState.file.createdAt), 'Asia/Dhaka', 'PPpp') : ''}</p>
                         </div>
                     </div>
 
@@ -1147,7 +1167,7 @@ export default function FilesPageContent({
                               )}
                           </div>
                       </TableCell>
-                      <TableCell>{file.createdAt ? format(parse(file.createdAt, "yyyy-MM-dd'T'HH:mm:ss.SSSSSSxxx", new Date()), 'dd/MM/yyyy') : ''}</TableCell>
+                      <TableCell>{file.createdAt ? format(parseISO(file.createdAt), 'dd/MM/yyyy') : ''}</TableCell>
                       <TableCell>
                           <DropdownMenu>
                           <DropdownMenuTrigger asChild><Button aria-haspopup="true" size="icon" variant="ghost"><MoreHorizontal className="h-4 w-4" /><span className="sr-only">Toggle menu</span></Button></DropdownMenuTrigger>
@@ -1285,7 +1305,7 @@ export default function FilesPageContent({
                     <p><strong>জন্ম তারিখ/সাল:</strong></p>
                     <p>{formatDobForDisplay(file.dob)}</p>
                     <p><strong>তৈরির তারিখ:</strong></p>
-                    <p>{file.createdAt ? format(parse(file.createdAt, "yyyy-MM-dd'T'HH:mm:ss.SSSSSSxxx", new Date()), 'dd/MM/yyyy') : ''}</p>
+                    <p>{file.createdAt ? format(parseISO(file.createdAt), 'dd/MM/yyyy') : ''}</p>
                     <p><strong>ডকুমেন্টস:</strong></p>
                     <div className="flex gap-2">
                         {file.hasCertificate && <Badge variant={file.certificate_status === 'প্রিন্ট হয়েছে' ? 'default' : 'secondary'} className="px-1.5 py-0"><Award className="h-3 w-3 mr-1" />প্রত্যয়ন</Badge>}
@@ -1321,8 +1341,3 @@ export default function FilesPageContent({
     </Card>
   );
 }
-  
-
-    
-
-    
