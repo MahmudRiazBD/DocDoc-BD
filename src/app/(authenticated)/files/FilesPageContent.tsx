@@ -76,6 +76,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { useRouter, usePathname, useSearchParams } from 'next/navigation';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { format } from 'date-fns';
+import { Label } from '@/components/ui/label';
 
 const fileSchema = z.object({
   application_no: z.string().optional(),
@@ -88,7 +89,7 @@ const fileSchema = z.object({
 });
 type FileSchema = z.infer<typeof fileSchema>;
 
-const AddFileForm = ({
+export const AddFileForm = ({
   clients,
   onSuccess,
   onCancel,
