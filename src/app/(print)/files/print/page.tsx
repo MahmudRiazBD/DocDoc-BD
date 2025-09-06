@@ -133,6 +133,8 @@ const PrintContent = () => {
     return acc;
   }, {} as { [key: string]: AppFile[] });
 
+  let sequentialSerial = 0;
+
   return (
     <div className="print-container bg-gray-100 p-8 text-black print:bg-white print:p-0 print:text-black">
       <div className="a4-page bg-white p-6 font-sans shadow-lg print:shadow-none">
@@ -149,7 +151,9 @@ const PrintContent = () => {
         
         {Object.entries(groupedFiles).map(([clientName, clientFiles]) => (
             <div key={clientName} className="mb-4 break-inside-avoid rounded-lg border border-gray-200">
-                <h2 className="bg-gray-100 px-3 py-2 text-sm font-bold text-gray-800 print:bg-gray-100">{clientName}</h2>
+                <h2 className="bg-gray-100 px-3 py-2 text-sm font-bold text-gray-800 print:bg-gray-100">
+                    {clientName} ({toBengaliNumber(clientFiles.length)})
+                </h2>
                 <table className="w-full text-xs">
                 <thead className='bg-gray-50 text-gray-600 print:bg-gray-50'>
                     <tr>
@@ -160,29 +164,32 @@ const PrintContent = () => {
                     </tr>
                 </thead>
                 <tbody>
-                    {clientFiles.map((file) => (
-                    <tr key={file.id} className="border-t border-gray-200">
-                        <td className="p-2 text-center font-mono">{toBengaliNumber(file.serial_no)}</td>
-                        <td className="p-2">{file.applicantNameBn || file.applicantNameEn}</td>
-                        <td className="p-2">{formatDobForDisplay(file.dob)}</td>
-                        <td className="p-2">
-                           <div className='flex items-center gap-2'>
-                                {file.hasCertificate && (
-                                    <span title='প্রত্যয়নপত্র' className='flex items-center gap-1 rounded-full bg-blue-100 px-2 py-0.5 text-blue-800 print:bg-transparent print:border print:border-blue-800'>
-                                        <Award className="h-3 w-3"/>
-                                        <span>প্রত্যয়ন</span>
-                                    </span>
-                                )}
-                                {file.hasElectricityBill && (
-                                     <span title='বিদ্যুৎ বিল' className='flex items-center gap-1 rounded-full bg-green-100 px-2 py-0.5 text-green-800 print:bg-transparent print:border print:border-green-800'>
-                                        <Bolt className="h-3 w-3"/>
-                                        <span>বিল</span>
-                                    </span>
-                                )}
-                           </div>
-                        </td>
-                    </tr>
-                    ))}
+                    {clientFiles.map((file) => {
+                        sequentialSerial++;
+                        return (
+                            <tr key={file.id} className="border-t border-gray-200">
+                                <td className="p-2 text-center font-mono">{toBengaliNumber(sequentialSerial)}</td>
+                                <td className="p-2">{file.applicantNameBn || file.applicantNameEn}</td>
+                                <td className="p-2">{formatDobForDisplay(file.dob)}</td>
+                                <td className="p-2">
+                                <div className='flex items-center gap-2'>
+                                        {file.hasCertificate && (
+                                            <span title='প্রত্যয়নপত্র' className='flex items-center gap-1 rounded-full bg-blue-100 px-2 py-0.5 text-blue-800 print:bg-transparent print:border print:border-blue-800'>
+                                                <Award className="h-3 w-3"/>
+                                                <span>প্রত্যয়ন</span>
+                                            </span>
+                                        )}
+                                        {file.hasElectricityBill && (
+                                            <span title='বিদ্যুৎ বিল' className='flex items-center gap-1 rounded-full bg-green-100 px-2 py-0.5 text-green-800 print:bg-transparent print:border print:border-green-800'>
+                                                <Bolt className="h-3 w-3"/>
+                                                <span>বিল</span>
+                                            </span>
+                                        )}
+                                </div>
+                                </td>
+                            </tr>
+                        )
+                    })}
                 </tbody>
                 </table>
             </div>
