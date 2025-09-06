@@ -1,3 +1,4 @@
+
 'use client';
 
 import React, { useState, useEffect, useMemo, useTransition } from 'react';
@@ -84,7 +85,7 @@ import {
   DialogDescription,
 } from '@/components/ui/dialog';
 import { AddUserForm } from '../users/UsersTable';
-import { FileForm } from '../files/FilesPageContent';
+import { AddFileForm } from '../files/FilesPageContent';
 import { AddInstitutionForm } from '../institutions/InstitutionsTable';
 import { ClientForm } from '../clients/ClientsTable';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -99,15 +100,12 @@ export default function DashboardPage() {
     clients: false,
     institutions: false,
     users: false,
-    bills: false
   });
 
   // State for forms
   const [clients, setClients] = useState<Client[]>([]);
   const [institutions, setInstitutions] = useState<Institution[]>([]);
   const [users, setUsers] = useState<User[]>([]);
-  const [billAddresses, setBillAddresses] = useState<BillAddress[]>([]);
-  const [billTemplates, setBillTemplates] = useState<BillTemplate[]>([]);
 
   // State for dialogs
   const [isAddFileOpen, setAddFileOpen] = useState(false);
@@ -124,23 +122,15 @@ export default function DashboardPage() {
 
 
   const fetchFormData = async () => {
-    if (clients.length > 0 && institutions.length > 0 && billAddresses.length > 0) return; // Don't refetch
-    setIsDataLoading(prev => ({...prev, clients: true, institutions: true, bills: true}));
+    if (clients.length > 0) return; // Don't refetch
+    setIsDataLoading(prev => ({...prev, clients: true}));
     try {
-      const [clientData, institutionData, billAddressData, billTemplateData] = await Promise.all([
-        getClients(),
-        getInstitutions(),
-        getBillAddresses(),
-        getBillTemplates()
-      ]);
+      const clientData = await getClients();
       setClients(clientData);
-      setInstitutions(institutionData);
-      setBillAddresses(billAddressData);
-      setBillTemplates(billTemplateData);
     } catch (error) {
       console.error('Failed to fetch form data', error);
     } finally {
-      setIsDataLoading(prev => ({...prev, clients: false, institutions: false, bills: false}));
+      setIsDataLoading(prev => ({...prev, clients: false}));
     }
   };
 
@@ -403,8 +393,7 @@ export default function DashboardPage() {
                 </CardHeader>
                 <CardContent>
                   <p className="text-sm text-muted-foreground h-10">
-                    নতুন ফাইল তৈরি করুন এবং ঐচ্ছিকভাবে প্রত্যয়নপত্র বা বিদ্যুৎ
-                    বিল যোগ করুন।
+                    PDF আপলোড করে স্বয়ংক্রিয়ভাবে নতুন ফাইল তৈরি করুন।
                   </p>
                 </CardContent>
               </Card>
@@ -413,20 +402,16 @@ export default function DashboardPage() {
               <DialogHeader>
                 <DialogTitle>নতুন ফাইল যোগ করুন</DialogTitle>
                 <DialogDescription>
-                  নতুন ফাইল তৈরি করুন এবং ঐচ্ছিকভাবে প্রত্যয়নপত্র ও বিদ্যুৎ বিল
-                  যোগ করুন।
+                  একটি PDF ফাইল আপলোড করে স্বয়ংক্রিয়ভাবে ফাইল তৈরি করুন।
                 </DialogDescription>
               </DialogHeader>
-              {isDataLoading.clients || isDataLoading.institutions || isDataLoading.bills ? (
+              {isDataLoading.clients ? (
                 <div className="flex justify-center items-center h-48">
                     <Loader2 className="h-8 w-8 animate-spin" />
                 </div>
               ) : (
-                <FileForm
+                <AddFileForm
                   clients={clients}
-                  institutions={institutions}
-                  billAddresses={billAddresses}
-                  billTemplates={billTemplates}
                   onSuccess={handleFormSuccess}
                   onCancel={() => setAddFileOpen(false)}
                 />
