@@ -11,7 +11,6 @@
 
 import { ai } from '@/ai/genkit';
 import { z } from 'genkit';
-import pdfjs from 'pdf-parse';
 
 // Define input and output schemas
 const PdfInputSchema = z.object({
@@ -98,8 +97,11 @@ export async function extractPdfData(input: PdfInput): Promise<ExtractedPdfData>
   }
   const pdfBuffer = Buffer.from(base64Data, 'base64');
   
+  // Use eval('require') to avoid webpack bundling issues with pdf-parse
+  const pdf = eval('require')('pdf-parse');
+
   // Extract text from the first page only
-  const data = await pdfjs(pdfBuffer, { max: 1 });
+  const data = await pdf(pdfBuffer, { max: 1 });
   const text = data.text;
 
   // 1. Try local parsing first
