@@ -1,3 +1,4 @@
+
 'use server';
 
 /**
@@ -53,13 +54,13 @@ const localParse = (text: string): Partial<ExtractedPdfData> => {
     const extract = (regex: RegExp) => (regex.exec(text)?.[1] || '').trim() || undefined;
 
     const data: Partial<ExtractedPdfData> = {
-        application_no: extract(/আবেদন পত্র নম্বরঃ\s*([^\n\r]+)/),
-        applicant_name_bn: extract(/নাম বাংলায় \(স্পষ্ট অক্ষরে\):\s*([^\n\r]+)/),
-        applicant_name_en: extract(/Name in English \(Capital Letters\):\s*([^\n\r]+)/),
-        dob: extract(/জন্ম তারিখ:\s*([^\n\r]+)/),
-        father_name_bn: extract(/পিতার নাম বাংলায় \(স্পষ্ট অক্ষরে\):\s*([^\n\r]+)/),
-        father_name_en: extract(/Father's name in English \(Capital Letters\):\s*([^\n\r]+)/),
-        mother_name_bn: extract(/মাতার নাম বাংলায় \(স্পষ্ট অক্ষরে\):\s*([^\n\r]+)/),
+        application_no: extract(/আবেদন পত্র নম্বরঃ\s*:?\s*([^\n\r]+)/),
+        applicant_name_bn: extract(/নাম বাংলায় \(স্পষ্ট অক্ষরে\):\s*:?\s*([^\n\r]+)/),
+        applicant_name_en: extract(/Name in English \(Capital Letters\):\s*:?\s*([^\n\r]+)/),
+        dob: extract(/জন্ম তারিখ:\s*:?\s*([^\n\r]+)/),
+        father_name_bn: extract(/পিতার নাম বাংলায় \(স্পষ্ট অক্ষরে\):\s*:?\s*([^\n\r]+)/),
+        father_name_en: extract(/Father's name in English \(Capital Letters\):\s*:?\s*([^\n\r]+)/),
+        mother_name_bn: extract(/মাতার নাম বাংলায় \(স্পষ্ট অক্ষরে\):\s*:?\s*([^\n\r]+)/),
     };
     
     // Return data only if at least one field was found
@@ -126,3 +127,5 @@ export async function extractPdfData(input: PdfInput): Promise<ExtractedPdfData>
 
   return output;
 }
+
+    

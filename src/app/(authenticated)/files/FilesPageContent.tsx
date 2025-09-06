@@ -150,6 +150,15 @@ export const AddFileForm = ({
   
   const form = useForm<FileSchema>({
     resolver: zodResolver(fileSchema),
+    defaultValues: {
+      application_no: '',
+      applicantNameEn: '',
+      applicantNameBn: '',
+      dob: '',
+      fatherNameEn: '',
+      fatherNameBn: '',
+      motherNameBn: '',
+    },
   });
 
   useEffect(() => {
@@ -1313,5 +1322,7 @@ export default function FilesPageContent({
   );
 }
   
+
+    
 
     
