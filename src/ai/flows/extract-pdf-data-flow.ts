@@ -55,7 +55,7 @@ const localParse = (text: string): Partial<ExtractedPdfData> => {
     const extract = (regex: RegExp) => (regex.exec(text)?.[1] || '').trim() || undefined;
 
     const data: Partial<ExtractedPdfData> = {
-        application_no: extract(/আবেদন পত্র নম্বর:?\s*([০-৯]+)/),
+        application_no: extract(/আবেদন পত্র নম্বরঃ?\s*(\d+)/),
         applicant_name_bn: extract(/নাম বাংলায় \(স্পষ্ট অক্ষরে\)[\s\S]*?([^\n\rA-Za-z0-9]+)/),
         applicant_name_en: extract(/Name in English \(Capital Letters\)[\s\S]*?([A-Za-z\s.]+)/),
         dob: extract(/জন্ম তারিখ[\s\S]*?(\d{2}\/\d{2}\/\d{4})/),

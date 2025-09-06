@@ -185,7 +185,7 @@ export const AddFileForm = ({
   useEffect(() => {
     if (extractedData) {
       form.reset({
-        application_no: toEnglishDigits(extractedData.application_no),
+        application_no: extractedData.application_no,
         applicantNameEn: extractedData.applicant_name_en ?? '',
         applicantNameBn: extractedData.applicant_name_bn ?? '',
         dob: parseBengaliDate(extractedData.dob),
@@ -237,13 +237,13 @@ export const AddFileForm = ({
             <ScrollArea className="h-[65vh] pr-6">
                  <div className="space-y-4">
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <FormField control={form.control} name="application_no" render={({ field }) => (<FormItem><FormLabel>আবেদন পত্র নম্বর</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>)} />
-                        <FormField control={form.control} name="dob" render={({ field }) => (<FormItem><FormLabel>জন্ম তারিখ (YYYY-MM-DD)</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>)} />
-                        <FormField control={form.control} name="applicantNameBn" render={({ field }) => (<FormItem><FormLabel>নাম (বাংলা)</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>)} />
-                        <FormField control={form.control} name="applicantNameEn" render={({ field }) => (<FormItem><FormLabel>নাম (ইংরেজি)</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>)} />
-                        <FormField control={form.control} name="fatherNameBn" render={({ field }) => (<FormItem><FormLabel>পিতার নাম (বাংলা)</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>)} />
-                        <FormField control={form.control} name="fatherNameEn" render={({ field }) => (<FormItem><FormLabel>পিতার নাম (ইংরেজি)</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>)} />
-                        <FormField control={form.control} name="motherNameBn" render={({ field }) => (<FormItem className="md:col-span-2"><FormLabel>মাতার নাম (বাংলা)</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>)} />
+                        <FormField control={form.control} name="application_no" render={({ field }) => (<FormItem><FormLabel>আবেদন পত্র নম্বর</FormLabel><FormControl><Input {...field} value={field.value ?? ''} /></FormControl><FormMessage /></FormItem>)} />
+                        <FormField control={form.control} name="dob" render={({ field }) => (<FormItem><FormLabel>জন্ম তারিখ (YYYY-MM-DD)</FormLabel><FormControl><Input {...field} value={field.value ?? ''} /></FormControl><FormMessage /></FormItem>)} />
+                        <FormField control={form.control} name="applicantNameBn" render={({ field }) => (<FormItem><FormLabel>নাম (বাংলা)</FormLabel><FormControl><Input {...field} value={field.value ?? ''} /></FormControl><FormMessage /></FormItem>)} />
+                        <FormField control={form.control} name="applicantNameEn" render={({ field }) => (<FormItem><FormLabel>নাম (ইংরেজি)</FormLabel><FormControl><Input {...field} value={field.value ?? ''} /></FormControl><FormMessage /></FormItem>)} />
+                        <FormField control={form.control} name="fatherNameBn" render={({ field }) => (<FormItem><FormLabel>পিতার নাম (বাংলা)</FormLabel><FormControl><Input {...field} value={field.value ?? ''} /></FormControl><FormMessage /></FormItem>)} />
+                        <FormField control={form.control} name="fatherNameEn" render={({ field }) => (<FormItem><FormLabel>পিতার নাম (ইংরেজি)</FormLabel><FormControl><Input {...field} value={field.value ?? ''} /></FormControl><FormMessage /></FormItem>)} />
+                        <FormField control={form.control} name="motherNameBn" render={({ field }) => (<FormItem className="md:col-span-2"><FormLabel>মাতার নাম (বাংলা)</FormLabel><FormControl><Input {...field} value={field.value ?? ''} /></FormControl><FormMessage /></FormItem>)} />
                     </div>
                 </div>
             </ScrollArea>
