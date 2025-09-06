@@ -11,7 +11,7 @@
  */
 
 import { ai } from '@/ai/genkit';
-import { z } from 'genkit';
+import { z } from 'zod';
 
 // Define input and output schemas
 const PdfInputSchema = z.object({
@@ -51,19 +51,19 @@ const checkRateLimit = () => {
 
 // Local parser using Regex
 const localParse = (text: string): Partial<ExtractedPdfData> => {
-    // This regex is designed to be more specific. It looks for the label,
-    // then optionally a colon, then whitespace, and then captures the text
-    // until the end of the line. The (?:\d\.)? part makes the numbered prefixes optional.
+    // This function tries to find a label and captures the text on the same line until a newline.
+    // The [\s\S]*? part is a non-greedy match for any character including newlines, allowing it
+    // to find the label even if it's not at the start of a line. The ([^\n\r]+) part captures the value.
     const extract = (regex: RegExp) => (regex.exec(text)?.[1] || '').trim() || undefined;
 
     const data: Partial<ExtractedPdfData> = {
-        application_no: extract(/আবেদন পত্র নম্বর\s*(\d+)/),
-        applicant_name_bn: extract(/নাম বাংলায়\s*\(স্পষ্ট অক্ষরে\)\s*([^\n\r]+)/),
-        applicant_name_en: extract(/Name in English\s*\(Capital Letters\)\s*([^\n\r]+)/),
-        dob: extract(/জন্ম তারিখ\s*([^\n\r]+)/),
-        father_name_bn: extract(/পিতার নাম\s*\n*\s*বাংলায়\s*\(স্পষ্ট অক্ষরে\)\s*([^\n\r]+)/),
-        father_name_en: extract(/Father's name in English\s*\(Capital Letters\)\s*([^\n\r]+)/),
-        mother_name_bn: extract(/মাতার নাম\s*\n*\s*বাংলায়\s*\(স্পষ্ট অক্ষরে\)\s*([^\n\r]+)/),
+        application_no: extract(/আবেদন পত্র নম্বর:?\s*(\d+)/),
+        applicant_name_bn: extract(/নাম বাংলায় \(স্পষ্ট অক্ষরে\)[\s\S]*?([^\n\r]+)/),
+        applicant_name_en: extract(/Name in English \(Capital Letters\)[\s\S]*?([^\n\r]+)/),
+        dob: extract(/জন্ম তারিখ[\s\S]*?([^\n\r]+)/),
+        father_name_bn: extract(/পিতার নাম বাংলায় \(স্পষ্ট অক্ষরে\)[\s\S]*?([^\n\r]+)/),
+        father_name_en: extract(/Father's name in English \(Capital Letters\)[\s\S]*?([^\n\r]+)/),
+        mother_name_bn: extract(/মাতার নাম বাংলায় \(স্পষ্ট অক্ষরে\)[\s\S]*?([^\n\r]+)/),
     };
     
     // Return data only if at least one field was found
