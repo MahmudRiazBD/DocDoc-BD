@@ -48,7 +48,7 @@ const BillPrintPage = () => {
         return <div className="flex h-screen items-center justify-center bg-gray-100"><Loader2 className="h-16 w-16 animate-spin text-primary" /></div>;
     }
 
-    if (!file || !file.hasElectricityBill) {
+    if (!file || !file.has_electricity_bill) {
         return <div className="flex h-screen items-center justify-center text-red-500 bg-gray-100">বিদ্যুৎ বিলের তথ্য পাওয়া যায়নি।</div>;
     }
     

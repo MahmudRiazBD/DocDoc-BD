@@ -111,15 +111,15 @@ export default function EditCertificatePage() {
                     // keep original if parsing fails
                 }
                 form.reset({
-                    name: fileData.applicantNameBn || '',
-                    fatherName: fileData.fatherNameBn ?? '',
-                    motherName: fileData.motherNameBn ?? '',
+                    name: fileData.applicant_name_bn || '',
+                    fatherName: fileData.father_name_bn ?? '',
+                    motherName: fileData.mother_name_bn ?? '',
                     dob: formattedDob,
                     class: fileData.class ?? '',
                     roll: fileData.roll ?? undefined,
-                    certificateDate: fileData.certificateDate ?? '',
-                    sessionYear: fileData.sessionYear ?? '',
-                    institutionId: fileData.institutionId ?? undefined,
+                    certificateDate: fileData.certificate_date ?? '',
+                    sessionYear: fileData.session_year ?? '',
+                    institutionId: fileData.institution_id ?? undefined,
                 });
             } else {
                 toast({ variant: 'destructive', title: 'ত্রুটি', description: 'ফাইল পাওয়া যায়নি।'});
@@ -192,15 +192,15 @@ export default function EditCertificatePage() {
        const dobForDb = formatDate(parsedDob, 'yyyy-MM-dd');
 
       const fileUpdateData: Partial<AppFile> = {
-        applicantNameBn: values.name,
-        fatherNameBn: values.fatherName,
-        motherNameBn: values.motherName,
+        applicant_name_bn: values.name,
+        father_name_bn: values.fatherName,
+        mother_name_bn: values.motherName,
         dob: dobForDb,
         class: values.class,
         roll: values.roll,
-        certificateDate: values.certificateDate,
-        sessionYear: values.sessionYear,
-        institutionId: values.institutionId,
+        certificate_date: values.certificateDate,
+        session_year: values.sessionYear,
+        institution_id: values.institutionId,
       };
       await updateFile(id, fileUpdateData);
       

@@ -9,15 +9,15 @@ import React from 'react';
 export const DescoBill = ({ file }: { file: AppFile }) => {
   if (!file.bill_recharge_history || !file.bill_address) return null;
 
-  const endDate = file.bill_recharge_history.length > 0 ? toDate(file.bill_recharge_history[0].date) : toDate(file.createdAt);
+  const endDate = file.bill_recharge_history.length > 0 ? toDate(file.bill_recharge_history[0].date) : toDate(new Date(file.created_at));
   const startDate = subYears(endDate, 1);
 
   return (
     <div id="printable-area-desco" className="bg-white shadow-lg a4-page-portrait font-sans text-xs relative print:text-black">
       {/* Header */}
       <header className="px-10 pt-8 pb-4 flex items-center gap-4">
-          {file.bill_template_logo_url && (
-             <Image src={file.bill_template_logo_url} alt="Desco Logo" width={100} height={40} data-ai-hint="company logo" unoptimized/>
+          {file.bill_templates?.logo_url && (
+             <Image src={file.bill_templates.logo_url} alt="Desco Logo" width={100} height={40} data-ai-hint="company logo" unoptimized/>
           )}
           <h1 className="text-xl font-bold">Dhaka Electric Supply Company Ltd</h1>
       </header>

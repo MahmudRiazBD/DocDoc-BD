@@ -1,42 +1,39 @@
-
-
 export interface AppFile {
   id: string;
   serial_no: number;
-  createdAt: string;
+  created_at: string;
 
   // Client Information
-  clientId: string;
-  clientName: string;
-  
+  client_id: string;
+  client_name: string;
+
   // New field from PDF
   application_no?: string | null;
 
   // Core Applicant Information
-  applicantNameBn?: string | null; // Bengali Name
-  applicantNameEn?: string | null; // English Name
+  applicant_name_bn?: string | null; // Bengali Name
+  applicant_name_en?: string | null; // English Name
   dob: string; // YYYY-MM-DD or YYYY
 
   // Control flags
-  hasCertificate: boolean;
-  hasElectricityBill: boolean;
+  has_certificate: boolean;
+  has_electricity_bill: boolean;
 
   // Certificate-related fields
-  institutionId?: string | null;
-  institutionName?: string; // Denormalized from institutions table
-  fatherNameBn?: string | null; // Bengali
-  fatherNameEn?: string | null; // English
-  motherNameBn?: string | null; // Bengali
+  institution_id?: string | null;
+  institutions?: { name: string } | null; // For joined data
+  father_name_bn?: string | null; // Bengali
+  father_name_en?: string | null; // English
+  mother_name_bn?: string | null; // Bengali
   class?: string | null;
   roll?: number | null;
-  certificateDate?: string | null; // YYYY-MM-DD
-  sessionYear?: string | null;
+  certificate_date?: string | null; // YYYY-MM-DD
+  session_year?: string | null;
   certificate_status?: 'প্রিন্ট হয়েছে' | 'প্রিন্ট হয়নি';
 
   // Electricity Bill-related fields
   bill_template_id?: string | null;
-  bill_template_name?: string; // Denormalized
-  bill_template_logo_url?: string; // Denormalized
+  bill_templates?: { name: string, logo_url: string } | null; // For joined data
   bill_holder_name?: string | null;
   bill_customer_no?: string | null;
   bill_sanc_load?: string | null;

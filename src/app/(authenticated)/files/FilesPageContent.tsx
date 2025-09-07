@@ -80,12 +80,12 @@ import { Label } from '@/components/ui/label';
 
 const fileSchema = z.object({
   application_no: z.string().optional(),
-  applicantNameEn: z.string().optional(),
-  applicantNameBn: z.string().optional(),
+  applicant_name_en: z.string().optional(),
+  applicant_name_bn: z.string().optional(),
   dob: z.string().min(1, "জন্ম তারিখ আবশ্যক"),
-  fatherNameEn: z.string().optional(),
-  fatherNameBn: z.string().optional(),
-  motherNameBn: z.string().optional(),
+  father_name_en: z.string().optional(),
+  father_name_bn: z.string().optional(),
+  mother_name_bn: z.string().optional(),
 });
 type FileSchema = z.infer<typeof fileSchema>;
 
@@ -185,13 +185,13 @@ export const AddFileForm = ({
   useEffect(() => {
     if (extractedData) {
       form.reset({
-        application_no: extractedData.application_no,
-        applicantNameEn: extractedData.applicant_name_en ?? '',
-        applicantNameBn: extractedData.applicant_name_bn ?? '',
+        application_no: toEnglishDigits(extractedData.application_no),
+        applicantNameEn: extractedData.applicant_name_en,
+        applicantNameBn: extractedData.applicant_name_bn,
         dob: parseBengaliDate(extractedData.dob),
-        fatherNameEn: extractedData.father_name_en ?? '',
-        fatherNameBn: extractedData.father_name_bn ?? '',
-        motherNameBn: extractedData.mother_name_bn ?? '',
+        fatherNameEn: extractedData.father_name_en,
+        fatherNameBn: extractedData.father_name_bn,
+        motherNameBn: extractedData.mother_name_bn,
       });
     }
   }, [extractedData, form]);
@@ -203,18 +203,17 @@ export const AddFileForm = ({
         try {
             const selectedClient = clients.find(c => c.id === selectedClientId);
              const fileData: Partial<AppFile> = { 
-                clientId: selectedClientId,
-                clientName: selectedClient!.name,
+                client_id: selectedClientId,
+                client_name: selectedClient!.name,
                 application_no: values.application_no,
-                applicantNameBn: values.applicantNameBn,
-                applicantNameEn: values.applicantNameEn,
+                applicant_name_bn: values.applicantNameBn,
+                applicant_name_en: values.applicantNameEn,
                 dob: values.dob,
-                fatherNameBn: values.fatherNameBn,
-                fatherNameEn: values.fatherNameEn,
-                motherNameBn: values.motherNameBn,
-                hasCertificate: false, // Default values
-                hasElectricityBill: false,
-                createdAt: new Date().toISOString(),
+                father_name_bn: values.fatherNameBn,
+                father_name_en: values.fatherNameEn,
+                mother_name_bn: values.motherNameBn,
+                has_certificate: false, // Default values
+                has_electricity_bill: false,
              };
             await addFile(fileData);
             toast({
@@ -239,11 +238,11 @@ export const AddFileForm = ({
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <FormField control={form.control} name="application_no" render={({ field }) => (<FormItem><FormLabel>আবেদন পত্র নম্বর</FormLabel><FormControl><Input {...field} value={field.value ?? ''} /></FormControl><FormMessage /></FormItem>)} />
                         <FormField control={form.control} name="dob" render={({ field }) => (<FormItem><FormLabel>জন্ম তারিখ (YYYY-MM-DD)</FormLabel><FormControl><Input {...field} value={field.value ?? ''} /></FormControl><FormMessage /></FormItem>)} />
-                        <FormField control={form.control} name="applicantNameBn" render={({ field }) => (<FormItem><FormLabel>নাম (বাংলা)</FormLabel><FormControl><Input {...field} value={field.value ?? ''} /></FormControl><FormMessage /></FormItem>)} />
-                        <FormField control={form.control} name="applicantNameEn" render={({ field }) => (<FormItem><FormLabel>নাম (ইংরেজি)</FormLabel><FormControl><Input {...field} value={field.value ?? ''} /></FormControl><FormMessage /></FormItem>)} />
-                        <FormField control={form.control} name="fatherNameBn" render={({ field }) => (<FormItem><FormLabel>পিতার নাম (বাংলা)</FormLabel><FormControl><Input {...field} value={field.value ?? ''} /></FormControl><FormMessage /></FormItem>)} />
-                        <FormField control={form.control} name="fatherNameEn" render={({ field }) => (<FormItem><FormLabel>পিতার নাম (ইংরেজি)</FormLabel><FormControl><Input {...field} value={field.value ?? ''} /></FormControl><FormMessage /></FormItem>)} />
-                        <FormField control={form.control} name="motherNameBn" render={({ field }) => (<FormItem className="md:col-span-2"><FormLabel>মাতার নাম (বাংলা)</FormLabel><FormControl><Input {...field} value={field.value ?? ''} /></FormControl><FormMessage /></FormItem>)} />
+                        <FormField control={form.control} name="applicant_name_bn" render={({ field }) => (<FormItem><FormLabel>নাম (বাংলা)</FormLabel><FormControl><Input {...field} value={field.value ?? ''} /></FormControl><FormMessage /></FormItem>)} />
+                        <FormField control={form.control} name="applicant_name_en" render={({ field }) => (<FormItem><FormLabel>নাম (ইংরেজি)</FormLabel><FormControl><Input {...field} value={field.value ?? ''} /></FormControl><FormMessage /></FormItem>)} />
+                        <FormField control={form.control} name="father_name_bn" render={({ field }) => (<FormItem><FormLabel>পিতার নাম (বাংলা)</FormLabel><FormControl><Input {...field} value={field.value ?? ''} /></FormControl><FormMessage /></FormItem>)} />
+                        <FormField control={form.control} name="father_name_en" render={({ field }) => (<FormItem><FormLabel>পিতার নাম (ইংরেজি)</FormLabel><FormControl><Input {...field} value={field.value ?? ''} /></FormControl><FormMessage /></FormItem>)} />
+                        <FormField control={form.control} name="mother_name_bn" render={({ field }) => (<FormItem className="md:col-span-2"><FormLabel>মাতার নাম (বাংলা)</FormLabel><FormControl><Input {...field} value={field.value ?? ''} /></FormControl><FormMessage /></FormItem>)} />
                     </div>
                 </div>
             </ScrollArea>
@@ -311,15 +310,15 @@ export const AddFileForm = ({
 
 
 const editFileSchema = z.object({
-  applicantNameBn: z.string().optional(),
-  applicantNameEn: z.string().optional(),
-  clientId: z.string({ required_error: 'ক্লায়েন্ট নির্বাচন করুন' }),
+  applicant_name_bn: z.string().optional(),
+  applicant_name_en: z.string().optional(),
+  client_id: z.string({ required_error: 'ক্লায়েন্ট নির্বাচন করুন' }),
   dob: z.string().min(4, 'জন্ম তারিখ বা সাল আবশ্যক'),
-  institutionId: z.string().optional(),
+  institution_id: z.string().optional(),
   billAddressId: z.string().optional(),
-  billTemplateId: z.string().optional(),
+  bill_template_id: z.string().optional(),
   application_no: z.string().optional(),
-  fatherNameEn: z.string().optional(),
+  father_name_en: z.string().optional(),
 });
 type EditFileSchema = z.infer<typeof editFileSchema>;
 
@@ -359,15 +358,15 @@ const EditFileForm = ({
     const form = useForm<EditFileSchema>({
         resolver: zodResolver(editFileSchema),
         defaultValues: {
-            applicantNameBn: file.applicantNameBn ?? '',
-            applicantNameEn: file.applicantNameEn ?? '',
-            clientId: file.clientId,
+            applicant_name_bn: file.applicant_name_bn ?? '',
+            applicant_name_en: file.applicant_name_en ?? '',
+            client_id: file.client_id,
             dob: file.dob,
-            institutionId: file.institutionId ?? undefined,
+            institution_id: file.institution_id ?? undefined,
             billAddressId: findBillAddressId(),
-            billTemplateId: file.bill_template_id ?? undefined,
+            bill_template_id: file.bill_template_id ?? undefined,
             application_no: file.application_no ?? '',
-            fatherNameEn: file.fatherNameEn ?? '',
+            father_name_en: file.father_name_en ?? '',
         },
     });
 
@@ -377,26 +376,26 @@ const EditFileForm = ({
                 const fileUpdates: Partial<AppFile> = {};
                 
                 if(file.application_no !== values.application_no) fileUpdates.application_no = values.application_no;
-                if(file.applicantNameBn !== values.applicantNameBn) fileUpdates.applicantNameBn = values.applicantNameBn;
-                if(file.applicantNameEn !== values.applicantNameEn) fileUpdates.applicantNameEn = values.applicantNameEn;
-                if(file.fatherNameEn !== values.fatherNameEn) fileUpdates.fatherNameEn = values.fatherNameEn;
-                if(file.clientId !== values.clientId) {
-                    const selectedClient = clients.find(c => c.id === values.clientId);
-                    fileUpdates.clientId = values.clientId;
-                    fileUpdates.clientName = selectedClient?.name;
+                if(file.applicant_name_bn !== values.applicant_name_bn) fileUpdates.applicant_name_bn = values.applicant_name_bn;
+                if(file.applicant_name_en !== values.applicant_name_en) fileUpdates.applicant_name_en = values.applicant_name_en;
+                if(file.father_name_en !== values.father_name_en) fileUpdates.father_name_en = values.father_name_en;
+                if(file.client_id !== values.client_id) {
+                    const selectedClient = clients.find(c => c.id === values.client_id);
+                    fileUpdates.client_id = values.client_id;
+                    fileUpdates.client_name = selectedClient?.name;
                 }
                 if(file.dob !== values.dob) fileUpdates.dob = values.dob;
 
                 // Certificate updates
-                if (file.hasCertificate && values.institutionId && file.institutionId !== values.institutionId) {
-                   fileUpdates.institutionId = values.institutionId;
+                if (file.has_certificate && values.institution_id && file.institution_id !== values.institution_id) {
+                   fileUpdates.institution_id = values.institution_id;
                 }
                 
                 // Bill updates
                 const selectedAddress = billAddresses.find(addr => addr.id === values.billAddressId);
                 const currentAddressId = findBillAddressId();
 
-                if (file.hasElectricityBill && selectedAddress && selectedAddress.id !== currentAddressId) {
+                if (file.has_electricity_bill && selectedAddress && selectedAddress.id !== currentAddressId) {
                     fileUpdates.bill_address = {
                         dagNo: selectedAddress.dagNo,
                         area: selectedAddress.area,
@@ -407,10 +406,10 @@ const EditFileForm = ({
                     if (file.bill_template_id !== selectedAddress.templateId) {
                         fileUpdates.bill_template_id = selectedAddress.templateId;
                     }
-                } else if (file.hasElectricityBill && values.billTemplateId && file.bill_template_id !== values.billTemplateId) {
+                } else if (file.has_electricity_bill && values.bill_template_id && file.bill_template_id !== values.bill_template_id) {
                     // This case handles when only the template is changed (e.g., to an active/inactive one of the same type)
                     // without changing the address itself.
-                    fileUpdates.bill_template_id = values.billTemplateId;
+                    fileUpdates.bill_template_id = values.bill_template_id;
                 }
                 
                 if (Object.keys(fileUpdates).length > 0) {
@@ -442,17 +441,17 @@ const EditFileForm = ({
                 <FormControl><Input {...field} value={field.value ?? ''} /></FormControl>
                 <FormMessage /></FormItem>
             )} />}
-            {file.applicantNameBn && <FormField control={form.control} name="applicantNameBn" render={({ field }) => (
+            {file.applicant_name_bn && <FormField control={form.control} name="applicant_name_bn" render={({ field }) => (
                 <FormItem><FormLabel>আবেদনকারীর নাম (বাংলা)</FormLabel>
                 <FormControl><Input {...field} value={field.value ?? ''} /></FormControl>
                 <FormMessage /></FormItem>
             )} />}
-            {file.applicantNameEn && <FormField control={form.control} name="applicantNameEn" render={({ field }) => (
+            {file.applicant_name_en && <FormField control={form.control} name="applicant_name_en" render={({ field }) => (
                 <FormItem><FormLabel>আবেদনকারীর নাম (ইংরেজি)</FormLabel>
                 <FormControl><Input {...field} value={field.value ?? ''} /></FormControl>
                 <FormMessage /></FormItem>
             )} />}
-             {file.fatherNameEn && <FormField control={form.control} name="fatherNameEn" render={({ field }) => (
+             {file.father_name_en && <FormField control={form.control} name="father_name_en" render={({ field }) => (
                 <FormItem><FormLabel>পিতার নাম (ইংরেজি)</FormLabel>
                 <FormControl><Input {...field} value={field.value ?? ''} /></FormControl>
                 <FormMessage /></FormItem>
@@ -462,7 +461,7 @@ const EditFileForm = ({
                 <FormControl><Input placeholder="DD/MM/YYYY বা YYYY" {...field} value={field.value ?? ''} /></FormControl>
                 <FormMessage /></FormItem>
             )} />
-            <FormField control={form.control} name="clientId" render={({ field }) => (
+            <FormField control={form.control} name="client_id" render={({ field }) => (
                 <FormItem className="flex flex-col"><FormLabel>ক্লায়েন্টের নাম</FormLabel>
                     <Popover><PopoverTrigger asChild><FormControl>
                     <Button variant="outline" role="combobox" className={cn("w-full justify-between", !field.value && "text-muted-foreground")}>
@@ -473,7 +472,7 @@ const EditFileForm = ({
                             <CommandInput placeholder="ক্লায়েন্ট খুঁজুন..." /><CommandEmpty>কোনো ক্লায়েন্ট পাওয়া যায়নি।</CommandEmpty>
                             <CommandList><CommandGroup>
                                 {clients.map((c) => (
-                                    <CommandItem value={c.name} key={c.id} onSelect={() => form.setValue("clientId", c.id)}>
+                                    <CommandItem value={c.name} key={c.id} onSelect={() => form.setValue("client_id", c.id)}>
                                     <Check className={cn("mr-2 h-4 w-4", c.id === field.value ? "opacity-100" : "opacity-0")} />
                                     {c.name}</CommandItem>
                                 ))}
@@ -483,8 +482,8 @@ const EditFileForm = ({
                 <FormMessage /></FormItem>
             )} />
 
-            {file.hasCertificate && (
-                 <FormField control={form.control} name="institutionId" render={({ field }) => (
+            {file.has_certificate && (
+                 <FormField control={form.control} name="institution_id" render={({ field }) => (
                     <FormItem className="flex flex-col"><FormLabel>প্রতিষ্ঠান</FormLabel>
                         <Popover><PopoverTrigger asChild><FormControl>
                         <Button variant="outline" role="combobox" className={cn("w-full justify-between", !field.value && "text-muted-foreground")}>
@@ -495,7 +494,7 @@ const EditFileForm = ({
                                 <CommandInput placeholder="প্রতিষ্ঠান খুঁজুন..." /><CommandEmpty>কোনো প্রতিষ্ঠান পাওয়া যায়নি।</CommandEmpty>
                                 <CommandList><CommandGroup>
                                     {institutions.map((i) => (
-                                        <CommandItem value={i.name} key={i.id} onSelect={() => form.setValue("institutionId", i.id)}>
+                                        <CommandItem value={i.name} key={i.id} onSelect={() => form.setValue("institution_id", i.id)}>
                                         <Check className={cn("mr-2 h-4 w-4", i.id === field.value ? "opacity-100" : "opacity-0")} />
                                         {i.name}</CommandItem>
                                     ))}
@@ -506,7 +505,7 @@ const EditFileForm = ({
                 )} />
             )}
 
-            {file.hasElectricityBill && (
+            {file.has_electricity_bill && (
                 <>
                     <FormField control={form.control} name="billAddressId" render={({ field }) => (
                         <FormItem className="flex flex-col"><FormLabel>বিদ্যুৎ বিলের ঠিকানা</FormLabel>
@@ -685,7 +684,7 @@ export default function FilesPageContent({
     }
 
     const docIdsToUpdate = files
-      .filter(f => selectedRows.includes(f.id) && (docType === 'certificate' ? f.hasCertificate : f.hasElectricityBill))
+      .filter(f => selectedRows.includes(f.id) && (docType === 'certificate' ? f.has_certificate : f.has_electricity_bill))
       .map(f => f.id);
 
     if (docIdsToUpdate.length === 0) {
@@ -754,7 +753,7 @@ export default function FilesPageContent({
      toast({ variant: 'destructive', title: 'কোনো ফাইল নির্বাচন করা হয়নি', description: 'প্রিন্ট করার জন্য অনুগ্রহ করে কমপক্ষে একটি ফাইল নির্বাচন করুন।'});
      return;
     }
-    const filteredIds = files.filter(f => selectedRows.includes(f.id) && (type === 'certificate' ? f.hasCertificate : f.hasElectricityBill)).map(f => f.id);
+    const filteredIds = files.filter(f => selectedRows.includes(f.id) && (type === 'certificate' ? f.has_certificate : f.has_electricity_bill)).map(f => f.id);
     
     if(filteredIds.length === 0){
         toast({ variant: 'destructive', title: 'প্রিন্টের জন্য উপযুক্ত ফাইল নেই', description: `নির্বাচিত ফাইলগুলোর মধ্যে কোনোটির ${type === 'certificate' ? 'প্রত্যয়নপত্র' : 'বিদ্যুৎ বিল'} নেই।`});
@@ -886,7 +885,7 @@ export default function FilesPageContent({
     switch (dialogState.mode) {
         case 'view':
             if (!dialogState.file) return null;
-            const displayName = dialogState.file.applicantNameBn || dialogState.file.applicantNameEn;
+            const displayName = dialogState.file.applicant_name_bn || dialogState.file.applicant_name_en;
             return (
                 <div className='space-y-4 text-sm pt-4'>
                     <div>
@@ -895,32 +894,32 @@ export default function FilesPageContent({
                             {dialogState.file.application_no && <><p><strong>আবেদন নং:</strong></p><p>{dialogState.file.application_no}</p></>}
                             <p><strong>আবেদনকারীর নাম:</strong></p><p>{displayName}</p>
                             <p><strong>জন্ম তারিখ/সাল:</strong></p><p>{formatDobForDisplay(dialogState.file.dob)}</p>
-                            <p><strong>ক্লায়েন্টের নাম:</strong></p><p>{dialogState.file.clientName}</p>
+                            <p><strong>ক্লায়েন্টের নাম:</strong></p><p>{dialogState.file.client_name}</p>
                             <div className="flex items-center"><strong>ডকুমেন্টস:</strong></div>
                             <div className='flex gap-2'>
-                                {dialogState.file.hasCertificate ? <Badge variant="secondary">প্রত্যয়নপত্র</Badge> : <Badge variant="outline">প্রত্যয়নপত্র নেই</Badge>}
-                                {dialogState.file.hasElectricityBill ? <Badge variant="secondary">বিদ্যুৎ বিল</Badge> : <Badge variant="outline">বিদ্যুৎ বিল নেই</Badge>}
+                                {dialogState.file.has_certificate ? <Badge variant="secondary">প্রত্যয়নপত্র</Badge> : <Badge variant="outline">প্রত্যয়নপত্র নেই</Badge>}
+                                {dialogState.file.has_electricity_bill ? <Badge variant="secondary">বিদ্যুৎ বিল</Badge> : <Badge variant="outline">বিদ্যুৎ বিল নেই</Badge>}
                             </div>
-                            <p><strong>তৈরির তারিখ:</strong></p><p>{dialogState.file.createdAt ? formatInTimeZone(parseISO(dialogState.file.createdAt), 'Asia/Dhaka', 'PPpp') : ''}</p>
+                            <p><strong>তৈরির তারিখ:</strong></p><p>{dialogState.file.created_at ? formatInTimeZone(parseISO(dialogState.file.created_at), 'Asia/Dhaka', 'PPpp') : ''}</p>
                         </div>
                     </div>
 
-                    {dialogState.file.hasCertificate && (
+                    {dialogState.file.has_certificate && (
                         <div><Separator className="my-4" />
                         <h3 className="font-semibold mb-2 text-base">প্রত্যয়নপত্রের তথ্য</h3>
                         <div className="grid grid-cols-2 gap-x-4 gap-y-1">
-                            <p><strong>পিতার নাম:</strong></p><p>{dialogState.file.fatherNameBn}</p>
-                            <p><strong>মাতার নাম:</strong></p><p>{dialogState.file.motherNameBn}</p>
-                            <p><strong>প্রতিষ্ঠান:</strong></p><p>{dialogState.file.institutionName}</p>
+                            <p><strong>পিতার নাম:</strong></p><p>{dialogState.file.father_name_bn}</p>
+                            <p><strong>মাতার নাম:</strong></p><p>{dialogState.file.mother_name_bn}</p>
+                            <p><strong>প্রতিষ্ঠান:</strong></p><p>{dialogState.file.institutions?.name}</p>
                             <p><strong>ক্লাস:</strong></p><p>{dialogState.file.class}</p>
                             <p><strong>রোল:</strong></p><p>{dialogState.file.roll}</p>
-                            <p><strong>সেশন:</strong></p><p>{dialogState.file.sessionYear}</p>
+                            <p><strong>সেশন:</strong></p><p>{dialogState.file.session_year}</p>
                             <div className="flex items-center"><strong>স্ট্যাটাস:</strong></div>
                             <div><Badge variant={dialogState.file.certificate_status === 'প্রিন্ট হয়েছে' ? 'default' : 'secondary'}>{dialogState.file.certificate_status}</Badge></div>
                         </div></div>
                     )}
                     
-                    {dialogState.file.hasElectricityBill && (
+                    {dialogState.file.has_electricity_bill && (
                         <div><Separator className="my-4" />
                         <h3 className="font-semibold mb-2 text-base">বিদ্যুৎ বিলের তথ্য</h3>
                         <div className="grid grid-cols-2 gap-x-4 gap-y-1">
@@ -930,7 +929,7 @@ export default function FilesPageContent({
                             <p><strong>মিটার নং:</strong></p><p>{dialogState.file.bill_meter_no}</p>
                             <p><strong>ঠিকানা:</strong></p><p>{dialogState.file.bill_address?.address || `দাগ নং-${dialogState.file.bill_address?.dagNo}, ${dialogState.file.bill_address?.area}, ${dialogState.file.bill_address?.division}`}</p>
                             <div className="flex items-center"><strong>টেমপ্লেট:</strong></div>
-                            <div><Badge variant="outline">{dialogState.file.bill_template_name?.toUpperCase()}</Badge></div>
+                            <div><Badge variant="outline">{dialogState.file.bill_templates?.name?.toUpperCase()}</Badge></div>
                              <div className="flex items-center"><strong>স্ট্যাটাস:</strong></div>
                             <div><Badge variant={dialogState.file.bill_status === 'প্রিন্ট হয়েছে' ? 'default' : 'secondary'}>{dialogState.file.bill_status}</Badge></div>
                         </div></div>
@@ -1146,28 +1145,28 @@ export default function FilesPageContent({
                 </TableHeader>
                 <TableBody>
                   {files.map((file) => {
-                      const displayName = file.applicantNameBn || file.applicantNameEn;
+                      const displayName = file.applicant_name_bn || file.applicant_name_en;
                       return (
                       <TableRow key={file.id} data-state={selectedRows.includes(file.id) ? "selected" : undefined} onMouseEnter={() => {
-                          if (file.hasCertificate) router.prefetch(`/certificates/print/${file.id}`);
-                          if (file.hasElectricityBill) router.prefetch(`/electricity-bills/print/${file.id}`);
+                          if (file.has_certificate) router.prefetch(`/certificates/print/${file.id}`);
+                          if (file.has_electricity_bill) router.prefetch(`/electricity-bills/print/${file.id}`);
                       }}>
                       <TableCell><Checkbox checked={selectedRows.includes(file.id)} onCheckedChange={(checked) => handleSelectRow(file.id, Boolean(checked))} aria-label={`Select row ${file.id}`}/></TableCell>
                       <TableCell className="font-mono">{file.serial_no.toString().padStart(4, '0')}</TableCell>
                       <TableCell className="font-medium">{displayName}</TableCell>
                       <TableCell>{formatDobForDisplay(file.dob)}</TableCell>
-                      <TableCell>{file.clientName}</TableCell>
+                      <TableCell>{file.client_name}</TableCell>
                       <TableCell>
                           <div className="flex gap-2">
-                              {file.hasCertificate && (
+                              {file.has_certificate && (
                                   <Badge variant={file.certificate_status === 'প্রিন্ট হয়েছে' ? 'default' : 'secondary'} className="px-1.5 py-0"><Award className="h-3 w-3 mr-1" />প্রত্যয়ন</Badge>
                               )}
-                              {file.hasElectricityBill && (
+                              {file.has_electricity_bill && (
                                   <Badge variant={file.bill_status === 'প্রিন্ট হয়েছে' ? 'default' : 'secondary'} className="px-1.5 py-0"><Bolt className="h-3 w-3 mr-1" />বিদ্যুৎ বিল</Badge>
                               )}
                           </div>
                       </TableCell>
-                      <TableCell>{file.createdAt ? format(parseISO(file.createdAt), 'dd/MM/yyyy') : ''}</TableCell>
+                      <TableCell>{file.created_at ? format(parseISO(file.created_at), 'dd/MM/yyyy') : ''}</TableCell>
                       <TableCell>
                           <DropdownMenu>
                           <DropdownMenuTrigger asChild><Button aria-haspopup="true" size="icon" variant="ghost"><MoreHorizontal className="h-4 w-4" /><span className="sr-only">Toggle menu</span></Button></DropdownMenuTrigger>
@@ -1179,12 +1178,12 @@ export default function FilesPageContent({
                                   <DropdownMenuPortal>
                                   <DropdownMenuSubContent>
                                       <DropdownMenuLabel>স্ট্যাটাস</DropdownMenuLabel>
-                                      {file.hasCertificate && (
+                                      {file.has_certificate && (
                                       <DropdownMenuItem onClick={() => handleStatusChange(file, 'certificate', file.certificate_status === 'প্রিন্ট হয়েছে' ? 'প্রিন্ট হয়নি' : 'প্রিন্ট হয়েছে')}>
                                           প্রত্যয়নপত্র: {file.certificate_status === 'প্রিন্ট হয়েছে' ? 'প্রিন্ট বাকি' : 'প্রিন্ট হয়েছে'}
                                       </DropdownMenuItem>
                                       )}
-                                      {file.hasElectricityBill && (
+                                      {file.has_electricity_bill && (
                                       <DropdownMenuItem onClick={() => handleStatusChange(file, 'bill', file.bill_status === 'প্রিন্ট হয়েছে' ? 'প্রিন্ট হয়নি' : 'প্রিন্ট হয়েছে')}>
                                           বিদ্যুৎ বিল: {file.bill_status === 'প্রিন্ট হয়েছে' ? 'প্রিন্ট বাকি' : 'প্রিন্ট হয়েছে'}
                                       </DropdownMenuItem>
@@ -1193,10 +1192,10 @@ export default function FilesPageContent({
                                   </DropdownMenuPortal>
                               </DropdownMenuSub>
                               <DropdownMenuSeparator/>
-                              <DropdownMenuItem asChild disabled={!file.hasCertificate}>
+                              <DropdownMenuItem asChild disabled={!file.has_certificate}>
                                   <Link href={`/certificates/print/${file.id}`} target="_blank"><Printer className="mr-2 h-4 w-4" />প্রত্যয়নপত্র প্রিন্ট</Link>
                               </DropdownMenuItem>
-                              <DropdownMenuItem asChild disabled={!file.hasElectricityBill}>
+                              <DropdownMenuItem asChild disabled={!file.has_electricity_bill}>
                                   <Link href={`/electricity-bills/print/${file.id}`} target="_blank"><Printer className="mr-2 h-4 w-4" />বিদ্যুৎ বিল প্রিন্ট</Link>
                               </DropdownMenuItem>
                               <DropdownMenuSeparator/>
@@ -1227,11 +1226,11 @@ export default function FilesPageContent({
                  <label htmlFor="selectAllMobile" className='text-sm font-medium'>সবগুলো নির্বাচন করুন</label>
               </div>
               {files.map((file) => {
-                const displayName = file.applicantNameBn || file.applicantNameEn;
+                const displayName = file.applicant_name_bn || file.applicant_name_en;
                 return (
                 <Card key={file.id} className={cn("relative", selectedRows.includes(file.id) && "border-primary ring-2 ring-primary")} onMouseEnter={() => {
-                        if (file.hasCertificate) router.prefetch(`/certificates/print/${file.id}`);
-                        if (file.hasElectricityBill) router.prefetch(`/electricity-bills/print/${file.id}`);
+                        if (file.has_certificate) router.prefetch(`/certificates/print/${file.id}`);
+                        if (file.has_electricity_bill) router.prefetch(`/electricity-bills/print/${file.id}`);
                     }}>
                     <div className='absolute top-2 left-2'>
                         <Checkbox checked={selectedRows.includes(file.id)} onCheckedChange={(checked) => handleSelectRow(file.id, Boolean(checked))} aria-label={`Select row ${file.id}`}/>
@@ -1239,7 +1238,7 @@ export default function FilesPageContent({
                   <CardHeader className="flex flex-row items-start justify-between pb-2 pl-8">
                     <div className="flex-1">
                       <CardTitle className="text-base">{displayName}</CardTitle>
-                      <CardDescription>ক্লায়েন্ট: {file.clientName}</CardDescription>
+                      <CardDescription>ক্লায়েন্ট: {file.client_name}</CardDescription>
                     </div>
                     <DropdownMenu>
                       <DropdownMenuTrigger asChild>
@@ -1256,12 +1255,12 @@ export default function FilesPageContent({
                                 <DropdownMenuPortal>
                                 <DropdownMenuSubContent>
                                     <DropdownMenuLabel>স্ট্যাটাস</DropdownMenuLabel>
-                                    {file.hasCertificate && (
+                                    {file.has_certificate && (
                                     <DropdownMenuItem onClick={() => handleStatusChange(file, 'certificate', file.certificate_status === 'প্রিন্ট হয়েছে' ? 'প্রিন্ট হয়নি' : 'প্রিন্ট হয়েছে')}>
                                         প্রত্যয়নপত্র: {file.certificate_status === 'প্রিন্ট হয়েছে' ? 'প্রিন্ট বাকি' : 'প্রিন্ট হয়েছে'}
                                     </DropdownMenuItem>
                                     )}
-                                    {file.hasElectricityBill && (
+                                    {file.has_electricity_bill && (
                                     <DropdownMenuItem onClick={() => handleStatusChange(file, 'bill', file.bill_status === 'প্রিন্ট হয়েছে' ? 'প্রিন্ট হয়নি' : 'প্রিন্ট হয়েছে')}>
                                         বিদ্যুৎ বিল: {file.bill_status === 'প্রিন্ট হয়েছে' ? 'প্রিন্ট বাকি' : 'প্রিন্ট হয়েছে'}
                                     </DropdownMenuItem>
@@ -1270,10 +1269,10 @@ export default function FilesPageContent({
                                 </DropdownMenuPortal>
                             </DropdownMenuSub>
                             <DropdownMenuSeparator/>
-                            <DropdownMenuItem asChild disabled={!file.hasCertificate}>
+                            <DropdownMenuItem asChild disabled={!file.has_certificate}>
                                 <Link href={`/certificates/print/${file.id}`} target="_blank"><Printer className="mr-2 h-4 w-4" />প্রত্যয়নপত্র প্রিন্ট</Link>
                             </DropdownMenuItem>
-                            <DropdownMenuItem asChild disabled={!file.hasElectricityBill}>
+                            <DropdownMenuItem asChild disabled={!file.has_electricity_bill}>
                                 <Link href={`/electricity-bills/print/${file.id}`} target="_blank"><Printer className="mr-2 h-4 w-4" />বিদ্যুৎ বিল প্রিন্ট</Link>
                             </DropdownMenuItem>
                             <DropdownMenuSeparator/>
@@ -1305,12 +1304,12 @@ export default function FilesPageContent({
                     <p><strong>জন্ম তারিখ/সাল:</strong></p>
                     <p>{formatDobForDisplay(file.dob)}</p>
                     <p><strong>তৈরির তারিখ:</strong></p>
-                    <p>{file.createdAt ? format(parseISO(file.createdAt), 'dd/MM/yyyy') : ''}</p>
+                    <p>{file.created_at ? format(parseISO(file.created_at), 'dd/MM/yyyy') : ''}</p>
                     <p><strong>ডকুমেন্টস:</strong></p>
                     <div className="flex gap-2">
-                        {file.hasCertificate && <Badge variant={file.certificate_status === 'প্রিন্ট হয়েছে' ? 'default' : 'secondary'} className="px-1.5 py-0"><Award className="h-3 w-3 mr-1" />প্রত্যয়ন</Badge>}
-                        {file.hasElectricityBill && <Badge variant={file.bill_status === 'প্রিন্ট হয়েছে' ? 'default' : 'secondary'} className="px-1.5 py-0"><Bolt className="h-3 w-3 mr-1" />বিল</Badge>}
-                        {!file.hasCertificate && !file.hasElectricityBill && <Badge variant="outline">নেই</Badge>}
+                        {file.has_certificate && <Badge variant={file.certificate_status === 'প্রিন্ট হয়েছে' ? 'default' : 'secondary'} className="px-1.5 py-0"><Award className="h-3 w-3 mr-1" />প্রত্যয়ন</Badge>}
+                        {file.has_electricity_bill && <Badge variant={file.bill_status === 'প্রিন্ট হয়েছে' ? 'default' : 'secondary'} className="px-1.5 py-0"><Bolt className="h-3 w-3 mr-1" />বিল</Badge>}
+                        {!file.has_certificate && !file.has_electricity_bill && <Badge variant="outline">নেই</Badge>}
                     </div>
                   </CardContent>
                 </Card>

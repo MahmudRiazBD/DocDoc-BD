@@ -1,7 +1,3 @@
-
-
-
-
 // A file for interacting with the Supabase database
 'use server';
 
@@ -24,47 +20,10 @@ function handleError(error: any, context: string) {
 // Files API
 export async function addFile(file: Partial<AppFile>): Promise<AppFile> {
   const supabaseAdmin = createClient();
-  const insertData = {
-    application_no: file.application_no || null,
-    applicant_name_bn: file.applicantNameBn || null,
-    applicant_name_en: file.applicantNameEn || null,
-    dob: file.dob,
-    client_id: file.clientId,
-    client_name: file.clientName,
-    has_certificate: file.hasCertificate,
-    has_electricity_bill: file.hasElectricityBill,
-    created_at: new Date().toISOString(),
-
-    // Certificate fields
-    institution_id: file.institutionId,
-    father_name_bn: file.fatherNameBn || null,
-    father_name_en: file.fatherNameEn || null,
-    mother_name_bn: file.motherNameBn || null,
-    class: file.class,
-    roll: file.roll,
-    certificate_date: file.certificateDate,
-    session_year: file.sessionYear,
-    certificate_status: file.certificate_status,
-
-    // Bill fields
-    bill_template_id: file.bill_template_id,
-    bill_holder_name: file.bill_holder_name,
-    bill_customer_no: file.bill_customer_no,
-    bill_sanc_load: file.bill_sanc_load,
-    bill_book_no: file.bill_book_no,
-    bill_type: file.bill_type,
-    bill_tariff: file.bill_tariff,
-    bill_account_no: file.bill_account_no,
-    bill_meter_no: file.bill_meter_no,
-    bill_s_and_d: file.bill_s_and_d,
-    bill_address: file.bill_address,
-    bill_recharge_history: file.bill_recharge_history,
-    bill_status: file.bill_status,
-  };
-
+  
   const { data, error } = await supabaseAdmin
     .from('files')
-    .insert([insertData])
+    .insert([file])
     .select()
     .single();
 
@@ -72,64 +31,9 @@ export async function addFile(file: Partial<AppFile>): Promise<AppFile> {
   revalidatePath('/files');
   revalidatePath('/clients');
   
-  const result: AppFile = {
-      id: data.id,
-      serial_no: data.serial_no,
-      application_no: data.application_no,
-      applicantNameBn: data.applicant_name_bn,
-      applicantNameEn: data.applicant_name_en,
-      dob: data.dob,
-      clientId: data.client_id,
-      clientName: data.client_name,
-      hasCertificate: data.has_certificate,
-      hasElectricityBill: data.has_electricity_bill,
-      createdAt: data.created_at,
-  };
-  return result;
+  return data as AppFile;
 }
 
-const mapFileDataToAppFile = (file: any): AppFile => ({
-    id: file.id,
-    serial_no: file.serial_no,
-    createdAt: file.created_at,
-    clientId: file.client_id,
-    clientName: file.client_name,
-    application_no: file.application_no,
-    applicantNameBn: file.applicant_name_bn,
-    applicantNameEn: file.applicant_name_en,
-    dob: file.dob,
-    hasCertificate: file.has_certificate,
-    hasElectricityBill: file.has_electricity_bill,
-    
-    // Certificate fields
-    institutionId: file.institution_id,
-    institutionName: file.institutions?.name,
-    fatherNameBn: file.father_name_bn,
-    fatherNameEn: file.father_name_en,
-    motherNameBn: file.mother_name_bn,
-    class: file.class,
-    roll: file.roll,
-    certificateDate: file.certificate_date,
-    sessionYear: file.session_year,
-    certificate_status: file.certificate_status,
-
-    // Bill fields
-    bill_template_id: file.bill_template_id,
-    bill_template_name: file.bill_templates?.name,
-    bill_template_logo_url: file.bill_templates?.logo_url,
-    bill_holder_name: file.bill_holder_name,
-    bill_customer_no: file.bill_customer_no,
-    bill_sanc_load: file.bill_sanc_load,
-    bill_book_no: file.bill_book_no,
-    bill_type: file.bill_type,
-    bill_tariff: file.bill_tariff,
-    bill_account_no: file.bill_account_no,
-    bill_meter_no: file.bill_meter_no,
-    bill_s_and_d: file.bill_s_and_d,
-    bill_address: file.bill_address,
-    bill_recharge_history: file.bill_recharge_history,
-    bill_status: file.bill_status,
-});
 
 const applyTimeFilters = (query: any, options: { filter?: string, date?: string, from?: string, to?: string, month?: string, year?: string }) => {
     const { filter, date, from, to, month, year } = options;
@@ -219,7 +123,7 @@ export async function getFiles(options: {
     const { data, error } = await query;
     if (error) handleError(error, 'getFiles');
 
-    return data?.map(mapFileDataToAppFile) || [];
+    return (data as AppFile[]) || [];
 }
 
 export async function getFilesCount(options: { 
@@ -260,7 +164,7 @@ export async function getFilesByIds(ids: string[]): Promise<AppFile[]> {
 
     if (error) handleError(error, 'getFilesByIds');
 
-    return data?.map(mapFileDataToAppFile) || [];
+    return (data as AppFile[]) || [];
 }
 
 export async function getFileById(id: string): Promise<AppFile | null> {
@@ -277,37 +181,14 @@ export async function getFileById(id: string): Promise<AppFile | null> {
     }
      if (!data) return null;
 
-    return mapFileDataToAppFile(data);
+    return data as AppFile;
 }
 
 export async function updateFile(id: string, file: Partial<AppFile>): Promise<void> {
     const supabaseAdmin = createClient();
-    const updateData: { [key: string]: any } = {};
 
-    // Core file info
-    if (file.application_no !== undefined) updateData.application_no = file.application_no;
-    if (file.applicantNameBn !== undefined) updateData.applicant_name_bn = file.applicantNameBn;
-    if (file.applicantNameEn !== undefined) updateData.applicant_name_en = file.applicantNameEn;
-    if (file.clientId !== undefined) updateData.client_id = file.clientId;
-    if (file.clientName !== undefined) updateData.client_name = file.clientName;
-    if (file.dob !== undefined) updateData.dob = file.dob;
-    
-    // Certificate fields
-    if (file.institutionId !== undefined) updateData.institution_id = file.institutionId;
-    if (file.fatherNameBn !== undefined) updateData.father_name_bn = file.fatherNameBn;
-    if (file.fatherNameEn !== undefined) updateData.father_name_en = file.fatherNameEn;
-    if (file.motherNameBn !== undefined) updateData.mother_name_bn = file.motherNameBn;
-    if (file.class !== undefined) updateData.class = file.class;
-    if (file.roll !== undefined) updateData.roll = file.roll;
-    if (file.certificateDate !== undefined) updateData.certificate_date = file.certificateDate;
-    if (file.sessionYear !== undefined) updateData.session_year = file.sessionYear;
-    
-    // Bill fields
-    if (file.bill_template_id !== undefined) updateData.bill_template_id = file.bill_template_id;
-    if (file.bill_address !== undefined) updateData.bill_address = file.bill_address;
-
-    if (Object.keys(updateData).length > 0) {
-        const { error } = await supabaseAdmin.from('files').update(updateData).eq('id', id);
+    if (Object.keys(file).length > 0) {
+        const { error } = await supabaseAdmin.from('files').update(file).eq('id', id);
         if (error) handleError(error, 'updateFile');
         revalidatePath('/files');
         revalidatePath(`/certificates/edit/${id}`);
@@ -340,9 +221,9 @@ export async function getUsers(): Promise<User[]> {
         id: user.id,
         name: user.name,
         email: user.email,
-        role: user.role,
+        role: user.role as User['role'],
         createdAt: user.created_at,
-        avatarUrl: user.avatar_url,
+        avatarUrl: user.avatar_url || undefined,
     })) || [];
 }
 
@@ -374,13 +255,13 @@ export async function getInstitutions(): Promise<Institution[]> {
       address: inst.address,
       phone: inst.phone,
       email: inst.email,
-      website: inst.website,
+      website: inst.website || undefined,
       createdAt: inst.created_at,
       logoUrl: inst.logo_url,
       signatureUrl1: inst.signature_url_1,
-      signatureUrl2: inst.signature_url_2,
-      collegeCode: inst.college_code,
-      schoolCode: inst.school_code,
+      signatureUrl2: inst.signature_url_2 || undefined,
+      collegeCode: inst.college_code || undefined,
+      schoolCode: inst.school_code || undefined,
       certificateText: inst.certificate_text,
   })) || [];
 }
@@ -399,13 +280,13 @@ export async function getInstitution(id: string): Promise<Institution | null> {
         address: data.address,
         phone: data.phone,
         email: data.email,
-        website: data.website,
+        website: data.website || undefined,
         createdAt: data.created_at,
         logoUrl: data.logo_url,
         signatureUrl1: data.signature_url_1,
-        signatureUrl2: data.signature_url_2,
-        collegeCode: data.college_code,
-        schoolCode: data.school_code,
+        signatureUrl2: data.signature_url_2 || undefined,
+        collegeCode: data.college_code || undefined,
+        schoolCode: data.school_code || undefined,
         certificateText: data.certificate_text,
     };
 }
@@ -440,13 +321,13 @@ export async function addInstitution(institution: Omit<Institution, 'id' | 'crea
         address: data.address,
         phone: data.phone,
         email: data.email,
-        website: data.website,
+        website: data.website || undefined,
         createdAt: data.created_at,
         logoUrl: data.logo_url,
         signatureUrl1: data.signature_url_1,
-        signatureUrl2: data.signature_url_2,
-        collegeCode: data.college_code,
-        schoolCode: data.school_code,
+        signatureUrl2: data.signature_url_2 || undefined,
+        collegeCode: data.college_code || undefined,
+        schoolCode: data.school_code || undefined,
         certificateText: data.certificate_text,
     };
 }
@@ -559,10 +440,10 @@ export async function getBillAddresses(): Promise<BillAddress[]> {
         return { 
             id: addr.id,
             serial_no: addr.serial_no,
-            dagNo: addr.dag_no,
-            area: addr.area,
-            division: addr.division,
-            address: addr.address,
+            dagNo: addr.dag_no || undefined,
+            area: addr.area || undefined,
+            division: addr.division || undefined,
+            address: addr.address || undefined,
             templateId: addr.template_id,
             templateName: templateName,
             createdAt: addr.created_at,
@@ -591,10 +472,10 @@ export async function addBillAddress(address: Partial<Omit<BillAddress, 'id' | '
      return {
         id: data.id,
         serial_no: data.serial_no,
-        dagNo: data.dag_no,
-        area: data.area,
-        division: data.division,
-        address: data.address,
+        dagNo: data.dag_no || undefined,
+        area: data.area || undefined,
+        division: data.division || undefined,
+        address: data.address || undefined,
         templateId: data.template_id,
         createdAt: data.created_at,
     };
@@ -637,9 +518,9 @@ export async function getBillTemplates(): Promise<BillTemplate[]> {
         if (insertError) handleError(insertError, 'getBillTemplates (seed)');
         const { data: newData, error: newError } = await supabaseAdmin.from('bill_templates').select('*, is_active').order('name', { ascending: true });
         if (newError) handleError(newError, 'getBillTemplates (refetch)');
-        return (newData?.map(t => ({id: t.id, name: t.name, logoUrl: t.logo_url, createdAt: t.created_at, isActive: t.is_active})) as BillTemplate[]) || [];
+        return (newData?.map(t => ({id: t.id, name: t.name, logoUrl: t.logo_url || undefined, createdAt: t.created_at, isActive: t.is_active})) as BillTemplate[]) || [];
     }
-    return (data?.map(t => ({id: t.id, name: t.name, logoUrl: t.logo_url, createdAt: t.created_at, isActive: t.is_active})) as BillTemplate[]) || [];
+    return (data?.map(t => ({id: t.id, name: t.name, logoUrl: t.logo_url || undefined, createdAt: t.created_at, isActive: t.is_active})) as BillTemplate[]) || [];
 }
 
 export async function updateBillTemplate(id: string, template: Partial<Omit<BillTemplate, 'id' | 'createdAt'>>): Promise<void> {

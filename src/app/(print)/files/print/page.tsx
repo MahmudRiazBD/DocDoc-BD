@@ -75,8 +75,8 @@ const PrintContent = () => {
         });
         
         fetchedFiles.sort((a, b) => {
-            if (a.clientName < b.clientName) return -1;
-            if (a.clientName > b.clientName) return 1;
+            if (a.client_name < b.client_name) return -1;
+            if (a.client_name > b.client_name) return 1;
             if (a.serial_no > b.serial_no) return -1;
             if (a.serial_no < b.serial_no) return 1;
             return 0;
@@ -125,7 +125,7 @@ const PrintContent = () => {
   }
 
   const groupedFiles: { [key: string]: AppFile[] } = files.reduce((acc, file) => {
-    const clientName = file.clientName || 'Uncategorized';
+    const clientName = file.client_name || 'Uncategorized';
     if (!acc[clientName]) {
       acc[clientName] = [];
     }
@@ -169,17 +169,17 @@ const PrintContent = () => {
                         return (
                             <tr key={file.id} className="border-t border-gray-200">
                                 <td className="p-2 text-center font-mono">{toBengaliNumber(sequentialSerial)}</td>
-                                <td className="p-2">{file.applicantNameBn || file.applicantNameEn}</td>
+                                <td className="p-2">{file.applicant_name_bn || file.applicant_name_en}</td>
                                 <td className="p-2">{formatDobForDisplay(file.dob)}</td>
                                 <td className="p-2">
                                 <div className='flex items-center gap-2'>
-                                        {file.hasCertificate && (
+                                        {file.has_certificate && (
                                             <span title='প্রত্যয়নপত্র' className='flex items-center gap-1 rounded-full bg-blue-100 px-2 py-0.5 text-blue-800 print:bg-transparent print:border print:border-blue-800'>
                                                 <Award className="h-3 w-3"/>
                                                 <span>প্রত্যয়ন</span>
                                             </span>
                                         )}
-                                        {file.hasElectricityBill && (
+                                        {file.has_electricity_bill && (
                                             <span title='বিদ্যুৎ বিল' className='flex items-center gap-1 rounded-full bg-green-100 px-2 py-0.5 text-green-800 print:bg-transparent print:border print:border-green-800'>
                                                 <Bolt className="h-3 w-3"/>
                                                 <span>বিল</span>

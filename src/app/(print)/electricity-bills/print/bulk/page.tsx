@@ -26,7 +26,7 @@ const BulkPrintContent = () => {
       const fileIds = ids.split(',');
       try {
         const results = await getFilesByIds(fileIds);
-        const billFiles = results.filter(f => f && f.hasElectricityBill);
+        const billFiles = results.filter(f => f && f.has_electricity_bill);
         
         if (billFiles.length === 0) {
             throw new Error(`এই ফাইল আইডিগুলোর জন্য কোনো বিদ্যুৎ বিল পাওয়া যায়নি।`);

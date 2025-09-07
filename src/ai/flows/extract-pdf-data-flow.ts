@@ -51,7 +51,6 @@ const checkRateLimit = () => {
 
 // Local parser using Regex
 const localParse = (text: string): Partial<ExtractedPdfData> => {
-    // This function tries to find a label and captures the text on the same line until a newline.
     const extract = (regex: RegExp) => (regex.exec(text)?.[1] || '').trim() || undefined;
 
     const data: Partial<ExtractedPdfData> = {
@@ -64,7 +63,6 @@ const localParse = (text: string): Partial<ExtractedPdfData> => {
         mother_name_bn: extract(/মাতার নাম বাংলায় \(স্পষ্ট অক্ষরে\)[\s\S]*?([^\n\rA-Za-z0-9]+)/),
     };
     
-    // Return data only if at least one field was found
     return Object.values(data).some(v => v !== undefined) ? data : {};
 };
 
@@ -99,14 +97,11 @@ export async function extractPdfData(input: PdfInput): Promise<ExtractedPdfData>
   }
   const pdfBuffer = Buffer.from(base64Data, 'base64');
   
-  // Use eval('require') to avoid webpack bundling issues with pdf-parse
   const pdf = eval('require')('pdf-parse');
 
-  // Extract text from the first page only
   const data = await pdf(pdfBuffer, { max: 1 });
   const text = data.text;
 
-  // 1. Try local parsing first
   const localResult = localParse(text);
   
   const requiredFields: (keyof ExtractedPdfData)[] = ['applicant_name_bn', 'dob'];
@@ -116,9 +111,8 @@ export async function extractPdfData(input: PdfInput): Promise<ExtractedPdfData>
     return localResult as ExtractedPdfData;
   }
 
-  // 2. If local parsing fails, fall back to AI
   console.log("Local parsing failed or missing required fields, falling back to AI model.");
-  checkRateLimit(); // Check rate limit before calling AI
+  checkRateLimit();
 
   const { output } = await extractionPrompt({ text });
   

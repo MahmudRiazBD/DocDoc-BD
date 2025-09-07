@@ -48,8 +48,8 @@ const toBengaliOrdinal = (classStr: string | undefined | null) => {
 const renderCertificateText = (text: string, file: AppFile) => {
     let renderedText = text || ''; // Ensure text is not undefined
     
-    const applicantName = file.applicantNameBn;
-    if (!applicantName || !file.dob || !file.roll || !file.sessionYear || !file.class || !file.fatherNameBn || !file.motherNameBn) {
+    const applicantName = file.applicant_name_bn;
+    if (!applicantName || !file.dob || !file.roll || !file.session_year || !file.class || !file.father_name_bn || !file.mother_name_bn) {
       return { __html: 'Error: Missing certificate data in file.' };
     }
 
@@ -63,12 +63,12 @@ const renderCertificateText = (text: string, file: AppFile) => {
     }
     const bengaliFormattedDob = toBengaliNumber(formattedDob);
     const bengaliRoll = toBengaliNumber(file.roll);
-    const bengaliSessionYear = toBengaliNumber(file.sessionYear);
+    const bengaliSessionYear = toBengaliNumber(file.session_year);
     const bengaliClass = toBengaliOrdinal(file.class);
 
     renderedText = renderedText.replace(/{{name}}/g, `<span class="font-bold">${applicantName}</span>`);
-    renderedText = renderedText.replace(/{{fatherName}}/g, `<span class="font-semibold">${file.fatherNameBn}</span>`);
-    renderedText = renderedText.replace(/{{motherName}}/g, `<span class="font-semibold">${file.motherNameBn}</span>`);
+    renderedText = renderedText.replace(/{{fatherName}}/g, `<span class="font-semibold">${file.father_name_bn}</span>`);
+    renderedText = renderedText.replace(/{{motherName}}/g, `<span class="font-semibold">${file.mother_name_bn}</span>`);
     renderedText = renderedText.replace(/{{dob}}/g, `<span class="font-semibold">${bengaliFormattedDob}</span>`);
     renderedText = renderedText.replace(/{{class}}/g, `<span class="font-semibold">${bengaliClass}</span>`);
     renderedText = renderedText.replace(/{{roll}}/g, `<span class="font-semibold">${bengaliRoll}</span>`);
@@ -88,8 +88,8 @@ export const PrintableCertificateBody = ({ file, institution }: { file: AppFile;
         setMemoNo(toBengaliNumber(randomMemoNo));
     }, [file.id]); // Re-generate if the file ID changes
 
-    if (!file.certificateDate) return null;
-    const certificateDate = parseISO(file.certificateDate);
+    if (!file.certificate_date) return null;
+    const certificateDate = parseISO(file.certificate_date);
     const bengaliFormattedCertificateDate = toBengaliNumber(formatInTimeZone(certificateDate, BD_TIME_ZONE, 'dd/MM/yyyy'));
     
     return (
@@ -204,8 +204,8 @@ const CertificatePrintPage = () => {
                 setLoading(true);
                 const fileData = await getFileById(id);
                 
-                if (fileData?.institutionId) {
-                    const instData = await getInstitution(fileData.institutionId);
+                if (fileData?.institution_id) {
+                    const instData = await getInstitution(fileData.institution_id);
                     setInstitution(instData);
                 }
                 setFile(fileData);

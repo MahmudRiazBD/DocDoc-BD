@@ -7,7 +7,7 @@ import React from 'react';
 
 export const DpdcBill = ({ file }: { file: AppFile }) => {
   if (!file.bill_recharge_history || !file.bill_address) return null;
-  const endDate = addDays(toDate(file.createdAt), -10);
+  const endDate = addDays(toDate(new Date(file.created_at)), -10);
   const startDate = subMonths(endDate, 3);
 
   return (
@@ -19,9 +19,9 @@ export const DpdcBill = ({ file }: { file: AppFile }) => {
         <div>
           <header className="flex justify-center mb-2">
             <div className='flex flex-row items-center gap-4'>
-              {file.bill_template_logo_url && (
+              {file.bill_templates?.logo_url && (
                 <Image
-                  src={file.bill_template_logo_url}
+                  src={file.bill_templates.logo_url}
                   alt="DPDC Logo"
                   width={70}
                   height={70}
@@ -59,10 +59,10 @@ export const DpdcBill = ({ file }: { file: AppFile }) => {
         {/* Bottom Section: Recharge History Table */}
         <div className="flex-grow relative border border-gray-300 p-2 flex flex-col">
             {/* Watermark is positioned relative to this container */}
-            {file.bill_template_logo_url && (
+            {file.bill_templates?.logo_url && (
                 <div className="absolute inset-0 flex items-center justify-center z-0">
                     <Image
-                        src={file.bill_template_logo_url}
+                        src={file.bill_templates.logo_url}
                         alt="DPDC Watermark"
                         width={400}
                         height={400}

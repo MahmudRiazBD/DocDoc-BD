@@ -32,10 +32,10 @@ const BulkPrintContent = () => {
         const files = await getFilesByIds(fileIds);
 
         const dataPromises = files.map(async (file) => {
-          if (!file || !file.institutionId) {
+          if (!file || !file.institution_id) {
             throw new Error(`ID: ${file.id} এর জন্য সার্টিফিকেট বা প্রতিষ্ঠান পাওয়া যায়নি।`);
           }
-          const inst = await getInstitution(file.institutionId);
+          const inst = await getInstitution(file.institution_id);
           if (!inst) {
             throw new Error(`ID: ${file.id} এর জন্য প্রতিষ্ঠান পাওয়া যায়নি।`);
           }
