@@ -12,7 +12,6 @@
 
 import { ai } from '@/ai/genkit';
 import { z } from 'zod';
-import pdf from 'pdf-parse/lib/pdf-parse.js';
 
 
 // Define input and output schemas
@@ -80,6 +79,9 @@ Text to analyze:
 
 // Main exported function
 export async function extractPdfData(input: PdfInput): Promise<ExtractedPdfData> {
+  // Dynamically import pdf-parse ONLY on the server-side when this function is called.
+  const pdf = (await import('pdf-parse/lib/pdf-parse.js')).default;
+  
   const base64Data = input.pdfDataUri.split(';base64,').pop();
   if (!base64Data) {
     throw new Error('Invalid PDF data URI.');
