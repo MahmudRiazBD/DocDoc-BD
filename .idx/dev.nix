@@ -24,9 +24,10 @@
       # "vscodevim.vim"
     ];
     workspace = {
+      # When the workspace is created, open this file.
       onCreate = {
-        default.openFiles = [
-          "src/app/page.tsx"
+        "default.openFiles" = [
+          "src/app/(authenticated)/dashboard/page.tsx"
         ];
       };
     };
