@@ -51,16 +51,19 @@ const checkRateLimit = () => {
 
 // Local parser using Regex
 const localParse = (text: string): Partial<ExtractedPdfData> => {
-    const extract = (regex: RegExp) => (regex.exec(text)?.[1] || '').trim() || undefined;
-
+    const extract = (regex: RegExp) => {
+        const match = text.match(regex);
+        return match?.[1]?.trim() || undefined;
+    };
+    
     const data: Partial<ExtractedPdfData> = {
         application_no: extract(/আবেদন পত্র নম্বরঃ?\s*(\d+)/),
-        applicant_name_bn: extract(/নাম বাংলায় \(স্পষ্ট অক্ষরে\)[\s\S]*?([^\n\rA-Za-z0-9]+)/),
-        applicant_name_en: extract(/Name in English \(Capital Letters\)[\s\S]*?([A-Za-z\s.]+)/),
-        dob: extract(/জন্ম তারিখ[\s\S]*?(\d{2}\/\d{2}\/\d{4})/),
-        father_name_bn: extract(/পিতার নাম বাংলায় \(স্পষ্ট অক্ষরে\)[\s\S]*?([^\n\rA-Za-z0-9]+)/),
-        father_name_en: extract(/Father's name in English \(Capital Letters\)[\s\S]*?([A-Za-z\s.]+)/),
-        mother_name_bn: extract(/মাতার নাম বাংলায় \(স্পষ্ট অক্ষরে\)[\s\S]*?([^\n\rA-Za-z0-9]+)/),
+        applicant_name_bn: extract(/নাম বাংলায় \(স্পষ্ট অক্ষরে\)[\s:.-]*([^\n\rA-Z0-9]+)/),
+        applicant_name_en: extract(/Name in English \(Capital Letters\)[\s:.-]*([A-Z\s.]+)/),
+        dob: extract(/জন্ম তারিখ[\s:.-]*(\d{2}\/\d{2}\/\d{4})/),
+        father_name_bn: extract(/পিতার নাম বাংলায় \(স্পষ্ট অক্ষরে\)[\s:.-]*([^\n\rA-Z0-9]+)/),
+        father_name_en: extract(/Father's name in English \(Capital Letters\)[\s:.-]*([A-Z\s.]+)/),
+        mother_name_bn: extract(/মাতার নাম বাংলায় \(স্পষ্ট অক্ষরে\)[\s:.-]*([^\n\rA-Z0-9]+)/),
     };
     
     return Object.values(data).some(v => v !== undefined) ? data : {};
