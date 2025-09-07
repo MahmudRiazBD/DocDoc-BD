@@ -3,7 +3,7 @@
 
 /**
  * @fileOverview AI flow to extract structured data from a PDF file.
- * It first tries to parse the data using regex and falls back to an AI model if parsing fails.
+ * It uses an AI model to parse the data.
  *
  * - extractPdfData - The main function to call for extracting data.
  * - PdfInput - The input type for the flow.
@@ -12,6 +12,7 @@
 
 import { ai } from '@/ai/genkit';
 import { z } from 'zod';
+import pdf from 'pdf-parse';
 
 // Define input and output schemas
 const PdfInputSchema = z.object({
@@ -49,42 +50,26 @@ const checkRateLimit = () => {
 };
 
 
-// Local parser using Regex
-const localParse = (text: string): Partial<ExtractedPdfData> => {
-    const extract = (regex: RegExp) => {
-        const match = text.match(regex);
-        return match?.[1]?.trim() || undefined;
-    };
-    
-    const data: Partial<ExtractedPdfData> = {
-        application_no: extract(/আবেদন পত্র নম্বরঃ?\s*(\d+)/),
-        applicant_name_bn: extract(/নাম বাংলায় \(স্পষ্ট অক্ষরে\)[\s:.-]*([^\n\rA-Z0-9]+)/),
-        applicant_name_en: extract(/Name in English \(Capital Letters\)[\s:.-]*([A-Z\s.]+)/),
-        dob: extract(/জন্ম তারিখ[\s:.-]*(\d{2}\/\d{2}\/\d{4})/),
-        father_name_bn: extract(/পিতার নাম বাংলায় \(স্পষ্ট অক্ষরে\)[\s:.-]*([^\n\rA-Z0-9]+)/),
-        father_name_en: extract(/Father's name in English \(Capital Letters\)[\s:.-]*([A-Z\s.]+)/),
-        mother_name_bn: extract(/মাতার নাম বাংলায় \(স্পষ্ট অক্ষরে\)[\s:.-]*([^\n\rA-Z0-9]+)/),
-    };
-    
-    return Object.values(data).some(v => v !== undefined) ? data : {};
-};
-
-
 // Genkit prompt for AI fallback
 const extractionPrompt = ai.definePrompt({
     name: 'pdfExtractionPrompt',
     input: { schema: z.object({ text: z.string() }) },
     output: { schema: ExtractedPdfDataSchema },
-    prompt: `You are an expert data extraction tool. Extract the following fields from the text provided, which is from a PDF document. The field names to look for are in Bengali and English. Provide the data in a structured JSON format.
+    prompt: `You are an expert data extraction tool. From the provided text extracted from a PDF document, please extract the values for the following fields. The field names to look for are in Bengali and English. Provide the data in a structured JSON format.
 
 Fields to extract:
-- আবেদন পত্র নম্বরঃ
-- নাম বাংলায় (স্পষ্ট অক্ষরে)
-- Name in English (Capital Letters)
-- জন্ম তারিখ
-- পিতার নাম বাংলায় (স্পষ্ট অক্ষরে)
-- Father's name in English (Capital Letters)
-- মাতার নাম বাংলায় (স্পষ্ট অক্ষরে)
+- "আবেদন পত্র নম্বরঃ"
+- "নাম বাংলায় (স্পষ্ট অক্ষরে)"
+- "Name in English (Capital Letters)"
+- "জন্ম তারিখ"
+- "পিতার নাম বাংলায় (স্পষ্ট অক্ষরে)"
+- "Father's name in English (Capital Letters)"
+- "মাতার নাম বাংলায় (স্পষ্ট অক্ষরে)"
+
+Important Rules:
+1.  Extract the value that immediately follows the label, even if it is on a different line.
+2.  Clean the extracted value, removing any extra newlines or trailing spaces.
+3.  The value for a field is typically contained within a visual table cell in the PDF, so stop extracting for a field when the logical content of that cell ends.
 
 Text to analyze:
 {{{text}}}
@@ -100,21 +85,9 @@ export async function extractPdfData(input: PdfInput): Promise<ExtractedPdfData>
   }
   const pdfBuffer = Buffer.from(base64Data, 'base64');
   
-  const pdf = eval('require')('pdf-parse');
-
   const data = await pdf(pdfBuffer, { max: 1 });
   const text = data.text;
 
-  const localResult = localParse(text);
-  
-  const requiredFields: (keyof ExtractedPdfData)[] = ['applicant_name_bn', 'dob'];
-  const hasAllRequired = requiredFields.every(field => localResult[field]);
-
-  if (hasAllRequired) {
-    return localResult as ExtractedPdfData;
-  }
-
-  console.log("Local parsing failed or missing required fields, falling back to AI model.");
   checkRateLimit();
 
   const { output } = await extractionPrompt({ text });
