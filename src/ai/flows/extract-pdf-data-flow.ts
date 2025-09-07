@@ -12,7 +12,8 @@
 
 import { ai } from '@/ai/genkit';
 import { z } from 'zod';
-import pdf from 'pdf-parse';
+const pdf = require('pdf-parse');
+
 
 // Define input and output schemas
 const PdfInputSchema = z.object({
