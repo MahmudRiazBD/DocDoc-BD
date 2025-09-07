@@ -12,7 +12,7 @@
 
 import { ai } from '@/ai/genkit';
 import { z } from 'zod';
-const pdf = require('pdf-parse');
+import pdf from 'pdf-parse/lib/pdf-parse.js';
 
 
 // Define input and output schemas

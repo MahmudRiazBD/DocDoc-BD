@@ -1,0 +1,56 @@
+diff --git a/node_modules/pdf-parse/index.js b/node_modules/pdf-parse/index.js
+index 24d678b..b510526 100644
+--- a/node_modules/pdf-parse/index.js
++++ b/node_modules/pdf-parse/index.js
+@@ -1,7 +1,4 @@
+ const fs = require('fs');
+-const path = require('path');
+-const {VM, VMScript} = require('vm2');
+ const PDFJS = require('./lib/pdf.js');
+ 
+ function PDF(dataBuffer, options) {
+@@ -16,36 +13,10 @@
+ 		max: 0,
+ 		//check if buffer is authentic PDF
+ 		version: 'default',
+-		// dumb flags
+-		DumbAutodetectDevicePixelRation: true,
+-		DumbPreferImage: false,
+-		DumbRenderInteractiveForms: true,
+-		DumbUseOnlyCssZoom: true,
+ 	};
+ 
+ 	if (typeof options === 'undefined') options = {};
+ 	if (typeof options.max === 'number')
+ 		PDF_PARSE_OPTIONS.max = options.max;
+-	if (typeof options.version === 'string' && options.version.toLowerCase() === 'v1.10.100')
+-		PDF_PARSE_OPTIONS.version = 'v1.10.100';
+-	if (typeof options.version === 'string' && options.version.toLowerCase() === 'v2.0.550')
+-		PDF_PARSE_OPTIONS.version = 'v2.0.550';
+-
+-	let file = path.join(__dirname, 'lib', PDF_PARSE_OPTIONS.version, 'pdf.worker.js');
+-	let script = new VMScript(fs.readFileSync(file, 'utf8'), file);
+-
+-	let vm = new VM({
+-		sandbox: {
+-			//'require': require,
+-			//'module': module,
+-			'fs': fs,
+-			'global': global,
+-			'process': process,
+-			'setTimeout': setTimeout,
+-			'setInterval': setInterval,
+-			'setImmediate': setImmediate,
+-			'clearTimeout': clearTimeout,
+-			'clearInterval': clearInterval,
+-			'clearImmediate': clearImmediate,
+-		}
+-	});
+-	vm.run(script);
++    
+ 	return PDFJS.getDocument(dataBuffer).promise;
+ };
+ 
+diff --git a/node_modules/pdf-parse/lib/pdf-parse.js b/node_modules/pdf-parse/lib/pdf-parse.js
+new file mode 100644
+index 0000000..e69de29
